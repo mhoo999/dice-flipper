@@ -1,11 +1,12 @@
 'use client';
 
-import { useRef, useEffect, useState } from 'react';
+import { useRef, useEffect, useState, useMemo } from 'react';
 import { useFrame } from '@react-three/fiber';
 import { RigidBody, RapierRigidBody, CuboidCollider, BallCollider } from '@react-three/rapier';
 import * as THREE from 'three';
-import { DiceCustomization, DICE_CONFIGS } from '@/types/dice';
+import { DICE_CONFIGS } from '@/types/dice';
 import { calculateDiceResult } from '@/lib/diceGeometry';
+import { createDiceMaterials } from '@/lib/diceTexture';
 import { useDiceStore, DiceInPlay } from '@/store/diceStore';
 
 interface Dice3DProps {
@@ -30,6 +31,11 @@ export function Dice3D({ dice }: Dice3DProps) {
 
   const { customization, position, rotation, isRolling } = dice;
   const materialProps = MATERIAL_PROPS[customization.material];
+
+  // 텍스처/머티리얼 생성
+  const materials = useMemo(() => {
+    return createDiceMaterials(customization);
+  }, [customization]);
 
   // 주사위 굴리기 시작
   useEffect(() => {
@@ -137,6 +143,27 @@ export function Dice3D({ dice }: Dice3DProps) {
         return <BallCollider args={[0.35]} />;
     }
   };
+
+  // D6는 면별 텍스처 적용
+  if (customization.type === 'D6' && Array.isArray(materials)) {
+    return (
+      <RigidBody
+        ref={rigidBodyRef}
+        position={position}
+        rotation={rotation}
+        restitution={0.3}
+        friction={0.8}
+        linearDamping={0.5}
+        angularDamping={0.5}
+        colliders={false}
+      >
+        <CuboidCollider args={[0.25, 0.25, 0.25]} />
+        <mesh ref={meshRef} castShadow receiveShadow material={materials}>
+          <boxGeometry args={[0.5, 0.5, 0.5]} />
+        </mesh>
+      </RigidBody>
+    );
+  }
 
   return (
     <RigidBody

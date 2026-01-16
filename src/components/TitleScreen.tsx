@@ -1,6 +1,6 @@
 'use client';
 
-import { Suspense, useEffect } from 'react';
+import { Suspense, useEffect, useRef } from 'react';
 import { Canvas } from '@react-three/fiber';
 import { useRouter } from 'next/navigation';
 import dynamic from 'next/dynamic';
@@ -24,6 +24,7 @@ function LoadingFallback() {
 
 export function TitleScreen() {
   const router = useRouter();
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const previewDice = useDiceStore((state) => state.previewDice);
   const selectedDice = useDiceStore((state) => state.selectedDice);
@@ -33,6 +34,8 @@ export function TitleScreen() {
   const addToTray = useDiceStore((state) => state.addToTray);
   const removeFromTray = useDiceStore((state) => state.removeFromTray);
   const clearTray = useDiceStore((state) => state.clearTray);
+  const setFaceImage = useDiceStore((state) => state.setFaceImage);
+  const clearFaceImages = useDiceStore((state) => state.clearFaceImages);
 
   // 초기 주사위 설정
   useEffect(() => {
@@ -48,6 +51,28 @@ export function TitleScreen() {
     }
     router.push('/play');
   };
+
+  // 이미지 업로드 처리
+  const handleImageUpload = (faceNumber: number) => {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = 'image/*';
+    input.onchange = (e) => {
+      const file = (e.target as HTMLInputElement).files?.[0];
+      if (file) {
+        const reader = new FileReader();
+        reader.onload = (event) => {
+          const dataUrl = event.target?.result as string;
+          setFaceImage(faceNumber, dataUrl);
+        };
+        reader.readAsDataURL(file);
+      }
+    };
+    input.click();
+  };
+
+  const faceImages = previewDice?.faceImages || {};
+  const isD6 = previewDice?.type === 'D6';
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-[#0a0a1a] to-[#1a1a2e] text-white">
@@ -66,9 +91,9 @@ export function TitleScreen() {
           {/* 왼쪽: 주사위 프리뷰 */}
           <div className="space-y-6">
             {/* 3D 쇼케이스 */}
-            <div className="bg-white/5 rounded-2xl overflow-hidden aspect-square">
+            <div className="bg-black/30 rounded-2xl overflow-hidden aspect-square border border-white/10">
               {previewDice && (
-                <Canvas shadows camera={{ position: [0, 0, 5], fov: 50 }}>
+                <Canvas shadows camera={{ position: [0, 0, 4], fov: 50 }}>
                   <color attach="background" args={['#0a0a1a']} />
                   <Suspense fallback={null}>
                     <DiceShowcaseScene customization={previewDice} />
@@ -142,7 +167,7 @@ export function TitleScreen() {
                     />
                   </div>
                   <div>
-                    <label className="text-sm text-gray-400 block mb-2">숫자 색상</label>
+                    <label className="text-sm text-gray-400 block mb-2">숫자/점 색상</label>
                     <input
                       type="color"
                       value={previewDice.numberColor}
@@ -191,6 +216,50 @@ export function TitleScreen() {
                   />
                 </div>
 
+                {/* D6 커스텀 이미지 업로드 */}
+                {isD6 && (
+                  <div>
+                    <div className="flex items-center justify-between mb-2">
+                      <label className="text-sm text-gray-400">면에 커스텀 이미지</label>
+                      {Object.keys(faceImages).length > 0 && (
+                        <button
+                          onClick={clearFaceImages}
+                          className="text-xs text-red-400 hover:text-red-300"
+                        >
+                          모두 제거
+                        </button>
+                      )}
+                    </div>
+                    <div className="grid grid-cols-6 gap-2">
+                      {[1, 2, 3, 4, 5, 6].map((num) => (
+                        <button
+                          key={num}
+                          onClick={() => handleImageUpload(num)}
+                          className={`aspect-square rounded-lg flex items-center justify-center text-sm font-bold transition-all overflow-hidden ${
+                            faceImages[num]
+                              ? 'ring-2 ring-green-400'
+                              : 'bg-white/10 hover:bg-white/20'
+                          }`}
+                          style={
+                            faceImages[num]
+                              ? {
+                                  backgroundImage: `url(${faceImages[num]})`,
+                                  backgroundSize: 'cover',
+                                  backgroundPosition: 'center',
+                                }
+                              : {}
+                          }
+                        >
+                          {!faceImages[num] && num}
+                        </button>
+                      ))}
+                    </div>
+                    <p className="text-xs text-gray-500 mt-2">
+                      클릭해서 해당 면에 이미지를 추가하세요
+                    </p>
+                  </div>
+                )}
+
                 {/* 트레이에 추가 버튼 */}
                 <button
                   onClick={addToTray}
@@ -229,7 +298,7 @@ export function TitleScreen() {
                       className="relative group"
                     >
                       <div
-                        className="aspect-square rounded-xl flex items-center justify-center text-lg font-bold"
+                        className="aspect-square rounded-xl flex items-center justify-center text-lg font-bold border-2 border-white/10"
                         style={{
                           backgroundColor: dice.customization.color,
                           color: dice.customization.numberColor,
@@ -237,6 +306,11 @@ export function TitleScreen() {
                         }}
                       >
                         {dice.customization.type}
+                        {dice.customization.faceImages && Object.keys(dice.customization.faceImages).length > 0 && (
+                          <span className="absolute bottom-1 right-1 text-xs bg-green-500 text-white px-1 rounded">
+                            IMG
+                          </span>
+                        )}
                       </div>
                       <button
                         onClick={() => removeFromTray(dice.id)}

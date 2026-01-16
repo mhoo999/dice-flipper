@@ -38,6 +38,8 @@ interface DiceStore {
   setPreviewDice: (type: DiceType) => void;
   updatePreviewCustomization: (customization: Partial<DiceCustomization>) => void;
   applyPresetToPreview: (presetId: string) => void;
+  setFaceImage: (faceNumber: number, imageUrl: string) => void;
+  clearFaceImages: () => void;
   addToTray: () => void;
   removeFromTray: (id: string) => void;
   clearTray: () => void;
@@ -61,6 +63,7 @@ const createDefaultCustomization = (type: DiceType): DiceCustomization => {
     numberColor: defaultPreset.numberColor,
     material: defaultPreset.material,
     opacity: defaultPreset.opacity,
+    faceImages: {},
   };
 };
 
@@ -94,7 +97,38 @@ export const useDiceStore = create<DiceStore>()(
         const preset = DEFAULT_PRESETS.find((p) => p.id === presetId);
         if (!preset) return;
         set({
-          previewDice: { ...previewDice, ...preset.customization },
+          previewDice: {
+            ...previewDice,
+            ...preset.customization,
+            faceImages: {}, // 프리셋 적용 시 커스텀 이미지 초기화
+          },
+        });
+      },
+
+      // 면에 이미지 설정
+      setFaceImage: (faceNumber, imageUrl) => {
+        const { previewDice } = get();
+        if (!previewDice) return;
+        set({
+          previewDice: {
+            ...previewDice,
+            faceImages: {
+              ...previewDice.faceImages,
+              [faceNumber]: imageUrl,
+            },
+          },
+        });
+      },
+
+      // 모든 면 이미지 제거
+      clearFaceImages: () => {
+        const { previewDice } = get();
+        if (!previewDice) return;
+        set({
+          previewDice: {
+            ...previewDice,
+            faceImages: {},
+          },
         });
       },
 
@@ -105,7 +139,11 @@ export const useDiceStore = create<DiceStore>()(
 
         const newDice: SelectedDice = {
           id: generateId(),
-          customization: { ...previewDice, id: generateId() },
+          customization: {
+            ...previewDice,
+            id: generateId(),
+            faceImages: previewDice.faceImages ? { ...previewDice.faceImages } : {},
+          },
         };
 
         set({

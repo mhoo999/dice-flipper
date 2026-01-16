@@ -1,14 +1,14 @@
 'use client';
 
-import { useRef } from 'react';
+import { useRef, useMemo } from 'react';
 import { useFrame } from '@react-three/fiber';
-import { OrbitControls, Environment, Float, Text3D, Center } from '@react-three/drei';
+import { OrbitControls, Environment, Float } from '@react-three/drei';
 import * as THREE from 'three';
-import { DiceCustomization, DiceType, DICE_CONFIGS } from '@/types/dice';
+import { DiceCustomization } from '@/types/dice';
+import { createDiceMaterials } from '@/lib/diceTexture';
 
 interface DiceShowcaseProps {
   customization: DiceCustomization;
-  autoRotate?: boolean;
 }
 
 // 재질별 머티리얼 속성
@@ -22,6 +22,11 @@ const MATERIAL_PROPS = {
 function DiceMesh({ customization }: { customization: DiceCustomization }) {
   const meshRef = useRef<THREE.Mesh>(null);
   const materialProps = MATERIAL_PROPS[customization.material];
+
+  // 텍스처 생성
+  const materials = useMemo(() => {
+    return createDiceMaterials(customization);
+  }, [customization]);
 
   // 자동 회전
   useFrame((state) => {
@@ -51,6 +56,17 @@ function DiceMesh({ customization }: { customization: DiceCustomization }) {
     }
   };
 
+  // D6는 6개 면에 각각 다른 머티리얼
+  if (customization.type === 'D6' && Array.isArray(materials)) {
+    return (
+      <Float speed={2} rotationIntensity={0.5} floatIntensity={0.5}>
+        <mesh ref={meshRef} castShadow receiveShadow material={materials}>
+          <boxGeometry args={[1.2, 1.2, 1.2]} />
+        </mesh>
+      </Float>
+    );
+  }
+
   return (
     <Float speed={2} rotationIntensity={0.5} floatIntensity={0.5}>
       <mesh ref={meshRef} castShadow receiveShadow>
@@ -68,20 +84,19 @@ function DiceMesh({ customization }: { customization: DiceCustomization }) {
 }
 
 export function DiceShowcaseScene({ customization }: DiceShowcaseProps) {
-  const config = DICE_CONFIGS[customization.type];
-
   return (
     <>
       {/* 조명 */}
-      <ambientLight intensity={0.3} />
+      <ambientLight intensity={0.5} />
       <spotLight
         position={[5, 5, 5]}
         angle={0.3}
         penumbra={1}
-        intensity={1}
+        intensity={1.2}
         castShadow
       />
       <pointLight position={[-5, 5, -5]} intensity={0.5} color="#88aaff" />
+      <pointLight position={[0, -5, 0]} intensity={0.3} color="#ff8888" />
 
       {/* 환경맵 */}
       <Environment preset="city" />
@@ -89,25 +104,15 @@ export function DiceShowcaseScene({ customization }: DiceShowcaseProps) {
       {/* 주사위 */}
       <DiceMesh customization={customization} />
 
-      {/* 바닥 반사 */}
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -2, 0]} receiveShadow>
-        <planeGeometry args={[10, 10]} />
-        <meshStandardMaterial
-          color="#111122"
-          metalness={0.8}
-          roughness={0.2}
-          transparent
-          opacity={0.5}
-        />
-      </mesh>
-
       {/* 카메라 컨트롤 */}
       <OrbitControls
         makeDefault
         enablePan={false}
         enableZoom={false}
         minPolarAngle={Math.PI / 4}
-        maxPolarAngle={Math.PI / 2}
+        maxPolarAngle={Math.PI / 1.5}
+        autoRotate
+        autoRotateSpeed={1}
       />
     </>
   );
