@@ -14,10 +14,10 @@ function Scene() {
   return (
     <>
       {/* 조명 */}
-      <ambientLight intensity={0.4} />
+      <ambientLight intensity={0.6} />
       <directionalLight
         position={[5, 10, 5]}
-        intensity={1}
+        intensity={1.2}
         castShadow
         shadow-mapSize={[2048, 2048]}
         shadow-camera-far={50}
@@ -26,7 +26,7 @@ function Scene() {
         shadow-camera-top={10}
         shadow-camera-bottom={-10}
       />
-      <pointLight position={[-5, 5, -5]} intensity={0.5} />
+      <pointLight position={[-5, 5, -5]} intensity={0.4} />
 
       {/* 환경맵 */}
       <Environment preset="apartment" />
@@ -45,7 +45,7 @@ function Scene() {
       {/* 그림자 */}
       <ContactShadows
         position={[0, -0.09, 0]}
-        opacity={0.5}
+        opacity={0.4}
         scale={12}
         blur={2}
         far={10}
@@ -89,8 +89,8 @@ export function DiceScene() {
           alpha: false,
         }}
       >
-        <color attach="background" args={['#1a1a2e']} />
-        <fog attach="fog" args={['#1a1a2e', 15, 30]} />
+        <color attach="background" args={['#f3f4f6']} />
+        <fog attach="fog" args={['#f3f4f6', 20, 40]} />
         <Suspense fallback={<LoadingFallback />}>
           <Scene />
         </Suspense>

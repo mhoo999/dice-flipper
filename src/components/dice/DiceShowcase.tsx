@@ -72,19 +72,19 @@ export function DiceShowcaseScene({ customization }: DiceShowcaseProps) {
   return (
     <>
       {/* 조명 */}
-      <ambientLight intensity={0.4} />
+      <ambientLight intensity={0.6} />
       <spotLight
         position={[5, 5, 5]}
         angle={0.3}
         penumbra={1}
-        intensity={1.5}
+        intensity={1.2}
         castShadow
       />
-      <pointLight position={[-5, 5, -5]} intensity={0.8} color="#88aaff" />
-      <pointLight position={[0, -5, 0]} intensity={0.4} color="#ff8888" />
+      <pointLight position={[-5, 5, -5]} intensity={0.5} />
+      <pointLight position={[0, -5, 0]} intensity={0.3} />
 
       {/* 환경맵 */}
-      <Environment preset="city" />
+      <Environment preset="apartment" />
 
       {/* 주사위 */}
       <DiceMesh customization={customization} />
