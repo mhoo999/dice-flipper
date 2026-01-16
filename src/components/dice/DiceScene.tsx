@@ -1,6 +1,6 @@
 'use client';
 
-import { Suspense, useEffect } from 'react';
+import { Suspense } from 'react';
 import { Canvas } from '@react-three/fiber';
 import { OrbitControls, Environment, ContactShadows } from '@react-three/drei';
 import { Physics } from '@react-three/rapier';
@@ -9,8 +9,7 @@ import { DiceTable } from './DiceTable';
 import { useDiceStore } from '@/store/diceStore';
 
 function Scene() {
-  const dice = useDiceStore((state) => state.dice);
-  const selectDice = useDiceStore((state) => state.selectDice);
+  const diceInPlay = useDiceStore((state) => state.diceInPlay);
 
   return (
     <>
@@ -38,12 +37,8 @@ function Scene() {
         <DiceTable />
 
         {/* 주사위들 */}
-        {dice.map((d) => (
-          <Dice3D
-            key={d.id}
-            dice={d}
-            onSelect={() => selectDice(d.id)}
-          />
+        {diceInPlay.map((dice) => (
+          <Dice3D key={dice.id} dice={dice} />
         ))}
       </Physics>
 

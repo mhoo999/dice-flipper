@@ -1,125 +1,181 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import { DiceState, DiceCustomization, DiceType, RollResult, DEFAULT_PRESETS } from '@/types/dice';
+import { DiceCustomization, DiceType, RollResult, DEFAULT_PRESETS } from '@/types/dice';
+
+// 선택된 주사위 (트레이에 담긴 주사위)
+export interface SelectedDice {
+  id: string;
+  customization: DiceCustomization;
+}
+
+// 플리퍼에서 사용되는 주사위 상태
+export interface DiceInPlay {
+  id: string;
+  customization: DiceCustomization;
+  position: [number, number, number];
+  rotation: [number, number, number];
+  result: number | null;
+  isRolling: boolean;
+}
 
 interface DiceStore {
-  // 주사위 목록
-  dice: DiceState[];
+  // 현재 프리뷰 중인 주사위 (타이틀 화면)
+  previewDice: DiceCustomization | null;
+
+  // 선택된 주사위 트레이
+  selectedDice: SelectedDice[];
+
+  // 플레이 중인 주사위들 (플리퍼 화면)
+  diceInPlay: DiceInPlay[];
 
   // 굴리기 기록
   rollHistory: RollResult[];
 
   // UI 상태
   isRolling: boolean;
-  selectedDiceId: string | null;
 
-  // 액션
-  addDice: (type: DiceType, customization?: Partial<DiceCustomization>) => void;
-  removeDice: (id: string) => void;
-  updateDiceCustomization: (id: string, customization: Partial<DiceCustomization>) => void;
-  rollDice: () => void;
+  // 타이틀 화면 액션
+  setPreviewDice: (type: DiceType) => void;
+  updatePreviewCustomization: (customization: Partial<DiceCustomization>) => void;
+  applyPresetToPreview: (presetId: string) => void;
+  addToTray: () => void;
+  removeFromTray: (id: string) => void;
+  clearTray: () => void;
+
+  // 플리퍼 화면 액션
+  initializePlay: () => void;
+  rollAllDice: () => void;
   rollSingleDice: (id: string) => void;
   setDiceResult: (id: string, result: number) => void;
-  setDiceRolling: (id: string, isRolling: boolean) => void;
-  selectDice: (id: string | null) => void;
-  clearDice: () => void;
   clearHistory: () => void;
-  applyPreset: (id: string, presetId: string) => void;
 }
 
 const generateId = () => Math.random().toString(36).substring(2, 9);
 
+const createDefaultCustomization = (type: DiceType): DiceCustomization => {
+  const defaultPreset = DEFAULT_PRESETS[0].customization;
+  return {
+    id: generateId(),
+    type,
+    color: defaultPreset.color,
+    numberColor: defaultPreset.numberColor,
+    material: defaultPreset.material,
+    opacity: defaultPreset.opacity,
+  };
+};
+
 export const useDiceStore = create<DiceStore>()(
   persist(
     (set, get) => ({
-      dice: [],
+      previewDice: null,
+      selectedDice: [],
+      diceInPlay: [],
       rollHistory: [],
       isRolling: false,
-      selectedDiceId: null,
 
-      addDice: (type, customization = {}) => {
-        const id = generateId();
-        const defaultPreset = DEFAULT_PRESETS[0].customization;
+      // 프리뷰 주사위 설정
+      setPreviewDice: (type) => {
+        set({ previewDice: createDefaultCustomization(type) });
+      },
 
-        const newDice: DiceState = {
-          id,
-          customization: {
-            id,
-            type,
-            color: defaultPreset.color,
-            numberColor: defaultPreset.numberColor,
-            material: defaultPreset.material,
-            opacity: defaultPreset.opacity,
-            ...customization,
-          },
+      // 프리뷰 주사위 커스터마이징
+      updatePreviewCustomization: (customization) => {
+        const { previewDice } = get();
+        if (!previewDice) return;
+        set({
+          previewDice: { ...previewDice, ...customization },
+        });
+      },
+
+      // 프리셋 적용
+      applyPresetToPreview: (presetId) => {
+        const { previewDice } = get();
+        if (!previewDice) return;
+        const preset = DEFAULT_PRESETS.find((p) => p.id === presetId);
+        if (!preset) return;
+        set({
+          previewDice: { ...previewDice, ...preset.customization },
+        });
+      },
+
+      // 트레이에 추가
+      addToTray: () => {
+        const { previewDice, selectedDice } = get();
+        if (!previewDice) return;
+
+        const newDice: SelectedDice = {
+          id: generateId(),
+          customization: { ...previewDice, id: generateId() },
+        };
+
+        set({
+          selectedDice: [...selectedDice, newDice],
+        });
+      },
+
+      // 트레이에서 제거
+      removeFromTray: (id) => {
+        set((state) => ({
+          selectedDice: state.selectedDice.filter((d) => d.id !== id),
+        }));
+      },
+
+      // 트레이 비우기
+      clearTray: () => {
+        set({ selectedDice: [] });
+      },
+
+      // 플레이 초기화 (트레이 → 플레이)
+      initializePlay: () => {
+        const { selectedDice } = get();
+
+        const diceInPlay: DiceInPlay[] = selectedDice.map((d, index) => ({
+          id: d.id,
+          customization: d.customization,
           position: [
-            (Math.random() - 0.5) * 2,
+            (index % 3 - 1) * 1.5,
             3 + Math.random() * 2,
-            (Math.random() - 0.5) * 2,
-          ],
+            Math.floor(index / 3) * 1.5 - 1,
+          ] as [number, number, number],
           rotation: [
             Math.random() * Math.PI * 2,
             Math.random() * Math.PI * 2,
             Math.random() * Math.PI * 2,
-          ],
+          ] as [number, number, number],
           result: null,
           isRolling: false,
-        };
-
-        set((state) => ({
-          dice: [...state.dice, newDice],
         }));
+
+        set({ diceInPlay, isRolling: false });
       },
 
-      removeDice: (id) => {
-        set((state) => ({
-          dice: state.dice.filter((d) => d.id !== id),
-          selectedDiceId: state.selectedDiceId === id ? null : state.selectedDiceId,
-        }));
-      },
-
-      updateDiceCustomization: (id, customization) => {
-        set((state) => ({
-          dice: state.dice.map((d) =>
-            d.id === id
-              ? { ...d, customization: { ...d.customization, ...customization } }
-              : d
-          ),
-        }));
-      },
-
-      rollDice: () => {
-        const { dice } = get();
+      // 모든 주사위 굴리기
+      rollAllDice: () => {
         set({ isRolling: true });
 
-        dice.forEach((d) => {
-          set((state) => ({
-            dice: state.dice.map((dice) =>
-              dice.id === d.id
-                ? {
-                    ...dice,
-                    isRolling: true,
-                    result: null,
-                    position: [
-                      (Math.random() - 0.5) * 3,
-                      4 + Math.random() * 2,
-                      (Math.random() - 0.5) * 3,
-                    ],
-                    rotation: [
-                      Math.random() * Math.PI * 2,
-                      Math.random() * Math.PI * 2,
-                      Math.random() * Math.PI * 2,
-                    ],
-                  }
-                : dice
-            ),
-          }));
-        });
+        set((state) => ({
+          diceInPlay: state.diceInPlay.map((d) => ({
+            ...d,
+            isRolling: true,
+            result: null,
+            position: [
+              (Math.random() - 0.5) * 3,
+              4 + Math.random() * 2,
+              (Math.random() - 0.5) * 3,
+            ] as [number, number, number],
+            rotation: [
+              Math.random() * Math.PI * 2,
+              Math.random() * Math.PI * 2,
+              Math.random() * Math.PI * 2,
+            ] as [number, number, number],
+          })),
+        }));
       },
 
+      // 단일 주사위 굴리기
       rollSingleDice: (id) => {
         set((state) => ({
-          dice: state.dice.map((d) =>
+          diceInPlay: state.diceInPlay.map((d) =>
             d.id === id
               ? {
                   ...d,
@@ -129,20 +185,21 @@ export const useDiceStore = create<DiceStore>()(
                     (Math.random() - 0.5) * 2,
                     4 + Math.random() * 2,
                     (Math.random() - 0.5) * 2,
-                  ],
+                  ] as [number, number, number],
                   rotation: [
                     Math.random() * Math.PI * 2,
                     Math.random() * Math.PI * 2,
                     Math.random() * Math.PI * 2,
-                  ],
+                  ] as [number, number, number],
                 }
               : d
           ),
         }));
       },
 
+      // 결과 설정
       setDiceResult: (id, result) => {
-        const dice = get().dice.find((d) => d.id === id);
+        const dice = get().diceInPlay.find((d) => d.id === id);
         if (!dice) return;
 
         const rollResult: RollResult = {
@@ -152,66 +209,29 @@ export const useDiceStore = create<DiceStore>()(
         };
 
         set((state) => ({
-          dice: state.dice.map((d) =>
+          diceInPlay: state.diceInPlay.map((d) =>
             d.id === id ? { ...d, result, isRolling: false } : d
           ),
           rollHistory: [rollResult, ...state.rollHistory].slice(0, 100),
         }));
 
         // 모든 주사위가 멈췄는지 확인
-        const allStopped = get().dice.every((d) => !d.isRolling);
+        const allStopped = get().diceInPlay.every((d) => !d.isRolling || d.id === id);
         if (allStopped) {
           set({ isRolling: false });
         }
       },
 
-      setDiceRolling: (id, isRolling) => {
-        set((state) => ({
-          dice: state.dice.map((d) =>
-            d.id === id ? { ...d, isRolling } : d
-          ),
-        }));
-      },
-
-      selectDice: (id) => {
-        set({ selectedDiceId: id });
-      },
-
-      clearDice: () => {
-        set({ dice: [], selectedDiceId: null });
-      },
-
+      // 히스토리 지우기
       clearHistory: () => {
         set({ rollHistory: [] });
-      },
-
-      applyPreset: (id, presetId) => {
-        const preset = DEFAULT_PRESETS.find((p) => p.id === presetId);
-        if (!preset) return;
-
-        set((state) => ({
-          dice: state.dice.map((d) =>
-            d.id === id
-              ? {
-                  ...d,
-                  customization: {
-                    ...d.customization,
-                    ...preset.customization,
-                  },
-                }
-              : d
-          ),
-        }));
       },
     }),
     {
       name: 'dice-flipper-storage',
       partialize: (state) => ({
-        dice: state.dice.map((d) => ({
-          ...d,
-          isRolling: false,
-          result: null,
-        })),
+        selectedDice: state.selectedDice,
+        previewDice: state.previewDice,
       }),
     }
   )

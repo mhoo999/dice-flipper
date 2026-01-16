@@ -1,5 +1,5 @@
-import DiceApp from '@/components/DiceApp';
+import TitleScreen from '@/components/TitleScreen';
 
 export default function Home() {
-  return <DiceApp />;
+  return <TitleScreen />;
 }

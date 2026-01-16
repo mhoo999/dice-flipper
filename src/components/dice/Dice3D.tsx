@@ -1,67 +1,35 @@
 'use client';
 
-import { useRef, useEffect, useState, useMemo } from 'react';
+import { useRef, useEffect, useState } from 'react';
 import { useFrame } from '@react-three/fiber';
 import { RigidBody, RapierRigidBody, CuboidCollider, BallCollider } from '@react-three/rapier';
 import * as THREE from 'three';
-import { DiceState, DiceType, DICE_CONFIGS } from '@/types/dice';
+import { DiceCustomization, DICE_CONFIGS } from '@/types/dice';
 import { calculateDiceResult } from '@/lib/diceGeometry';
-import { useDiceStore } from '@/store/diceStore';
+import { useDiceStore, DiceInPlay } from '@/store/diceStore';
 
 interface Dice3DProps {
-  dice: DiceState;
-  onSelect?: () => void;
+  dice: DiceInPlay;
 }
 
 // 재질별 머티리얼 속성
 const MATERIAL_PROPS = {
-  plastic: {
-    metalness: 0.1,
-    roughness: 0.4,
-  },
-  metal: {
-    metalness: 0.9,
-    roughness: 0.2,
-  },
-  glass: {
-    metalness: 0.1,
-    roughness: 0.05,
-    transparent: true,
-  },
-  wood: {
-    metalness: 0,
-    roughness: 0.8,
-  },
+  plastic: { metalness: 0.1, roughness: 0.4 },
+  metal: { metalness: 0.9, roughness: 0.2 },
+  glass: { metalness: 0.1, roughness: 0.05, transparent: true },
+  wood: { metalness: 0, roughness: 0.8 },
 };
 
-export function Dice3D({ dice, onSelect }: Dice3DProps) {
+export function Dice3D({ dice }: Dice3DProps) {
   const rigidBodyRef = useRef<RapierRigidBody>(null);
   const meshRef = useRef<THREE.Mesh>(null);
   const [isStable, setIsStable] = useState(false);
-  const lastVelocity = useRef<THREE.Vector3>(new THREE.Vector3());
   const stableFrames = useRef(0);
 
   const setDiceResult = useDiceStore((state) => state.setDiceResult);
-  const setDiceRolling = useDiceStore((state) => state.setDiceRolling);
-  const selectedDiceId = useDiceStore((state) => state.selectedDiceId);
 
   const { customization, position, rotation, isRolling } = dice;
-  const config = DICE_CONFIGS[customization.type];
   const materialProps = MATERIAL_PROPS[customization.material];
-
-  // 텍스처 생성
-  const textures = useMemo(() => {
-    const canvas = document.createElement('canvas');
-    canvas.width = 256;
-    canvas.height = 256;
-    const ctx = canvas.getContext('2d')!;
-
-    ctx.fillStyle = customization.color;
-    ctx.fillRect(0, 0, 256, 256);
-
-    const texture = new THREE.CanvasTexture(canvas);
-    return texture;
-  }, [customization.color]);
 
   // 주사위 굴리기 시작
   useEffect(() => {
@@ -90,9 +58,9 @@ export function Dice3D({ dice, onSelect }: Dice3DProps) {
       };
 
       const torque = {
-        x: (Math.random() - 0.5) * 20,
-        y: (Math.random() - 0.5) * 20,
-        z: (Math.random() - 0.5) * 20,
+        x: (Math.random() - 0.5) * 25,
+        y: (Math.random() - 0.5) * 25,
+        z: (Math.random() - 0.5) * 25,
       };
 
       rb.setLinvel({ x: force.x, y: force.y, z: force.z }, true);
@@ -105,7 +73,7 @@ export function Dice3D({ dice, onSelect }: Dice3DProps) {
 
   // 매 프레임 안정성 체크
   useFrame(() => {
-    if (!rigidBodyRef.current || isStable) return;
+    if (!rigidBodyRef.current || isStable || !dice.isRolling) return;
 
     const rb = rigidBodyRef.current;
     const linvel = rb.linvel();
@@ -121,10 +89,10 @@ export function Dice3D({ dice, onSelect }: Dice3DProps) {
       stableFrames.current++;
 
       // 30프레임 동안 안정적이면 결과 확정
-      if (stableFrames.current > 30 && dice.isRolling) {
+      if (stableFrames.current > 30) {
         const quaternion = new THREE.Quaternion();
-        const rotation = rb.rotation();
-        quaternion.set(rotation.x, rotation.y, rotation.z, rotation.w);
+        const rot = rb.rotation();
+        quaternion.set(rot.x, rot.y, rot.z, rot.w);
 
         const result = calculateDiceResult(customization.type, quaternion);
         setDiceResult(dice.id, result);
@@ -133,8 +101,6 @@ export function Dice3D({ dice, onSelect }: Dice3DProps) {
     } else {
       stableFrames.current = 0;
     }
-
-    lastVelocity.current = velocity;
   });
 
   // 주사위 타입별 형태 렌더링
@@ -150,7 +116,6 @@ export function Dice3D({ dice, onSelect }: Dice3DProps) {
       case 'D8':
         return <octahedronGeometry args={[scale * 0.7, 0]} />;
       case 'D10':
-        // D10은 특별한 지오메트리 필요 - 간략화해서 dodecahedron 사용
         return <dodecahedronGeometry args={[scale * 0.6, 0]} />;
       case 'D12':
         return <dodecahedronGeometry args={[scale * 0.65, 0]} />;
@@ -173,8 +138,6 @@ export function Dice3D({ dice, onSelect }: Dice3DProps) {
     }
   };
 
-  const isSelected = selectedDiceId === dice.id;
-
   return (
     <RigidBody
       ref={rigidBodyRef}
@@ -187,32 +150,15 @@ export function Dice3D({ dice, onSelect }: Dice3DProps) {
       colliders={false}
     >
       {renderCollider()}
-      <mesh
-        ref={meshRef}
-        onClick={(e) => {
-          e.stopPropagation();
-          onSelect?.();
-        }}
-        castShadow
-        receiveShadow
-      >
+      <mesh ref={meshRef} castShadow receiveShadow>
         {renderDiceGeometry()}
         <meshStandardMaterial
           color={customization.color}
           {...materialProps}
           opacity={customization.opacity}
           transparent={customization.opacity < 1}
-          emissive={isSelected ? customization.color : '#000000'}
-          emissiveIntensity={isSelected ? 0.3 : 0}
         />
       </mesh>
-
-      {/* 결과 표시 */}
-      {dice.result && !dice.isRolling && (
-        <sprite position={[0, 0.8, 0]} scale={[0.5, 0.5, 0.5]}>
-          <spriteMaterial color="white" opacity={0.9} transparent />
-        </sprite>
-      )}
     </RigidBody>
   );
 }
