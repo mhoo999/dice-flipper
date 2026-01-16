@@ -1,11 +1,11 @@
 'use client';
 
-import { Suspense, useEffect } from 'react';
+import { Suspense, useEffect, useState, useRef } from 'react';
 import { Canvas } from '@react-three/fiber';
 import { useRouter } from 'next/navigation';
 import dynamic from 'next/dynamic';
 import { useDiceStore } from '@/store/diceStore';
-import { DiceType, DICE_CONFIGS } from '@/types/dice';
+import { DiceType, DICE_CONFIGS, DiceCustomization } from '@/types/dice';
 
 const DiceShowcaseScene = dynamic(
   () => import('./dice/DiceShowcase').then((mod) => mod.DiceShowcaseScene),
@@ -16,6 +16,10 @@ const DICE_TYPES: DiceType[] = ['D4', 'D6', 'D8', 'D10', 'D12', 'D20'];
 
 export function TitleScreen() {
   const router = useRouter();
+  const [isCustomizeOpen, setIsCustomizeOpen] = useState(false);
+  const [customizeMode, setCustomizeMode] = useState<'image' | 'text'>('image');
+  const [saveName, setSaveName] = useState('');
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const previewDice = useDiceStore((state) => state.previewDice);
   const selectedDice = useDiceStore((state) => state.selectedDice);
@@ -25,6 +29,8 @@ export function TitleScreen() {
   const clearTray = useDiceStore((state) => state.clearTray);
   const setFaceImage = useDiceStore((state) => state.setFaceImage);
   const clearFaceImages = useDiceStore((state) => state.clearFaceImages);
+  const setFaceText = useDiceStore((state) => state.setFaceText);
+  const clearFaceTexts = useDiceStore((state) => state.clearFaceTexts);
 
   // 초기 주사위 설정
   useEffect(() => {
@@ -60,8 +66,120 @@ export function TitleScreen() {
     input.click();
   };
 
+  // 텍스트 변경 처리
+  const handleTextChange = (faceNumber: number, text: string) => {
+    setFaceText(faceNumber, text);
+  };
+
+  // CSV로 커스터마이징 저장
+  const handleSaveCustomization = () => {
+    if (!previewDice) return;
+    if (!saveName.trim()) {
+      alert('저장할 이름을 입력해주세요.');
+      return;
+    }
+
+    const data = {
+      name: saveName.trim(),
+      type: previewDice.type,
+      faceImages: previewDice.faceImages || {},
+      faceTexts: previewDice.faceTexts || {},
+    };
+
+    // CSV 형식으로 변환 (JSON을 base64로 인코딩)
+    const jsonString = JSON.stringify(data);
+    const base64Data = btoa(unescape(encodeURIComponent(jsonString)));
+    const csvContent = `name,data\n"${saveName.trim()}","${base64Data}"`;
+
+    // 파일 다운로드
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `${saveName.trim()}_dice_customization.csv`;
+    link.click();
+    URL.revokeObjectURL(url);
+
+    setSaveName('');
+  };
+
+  // CSV에서 커스터마이징 불러오기
+  const handleLoadCustomization = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      try {
+        const csvText = event.target?.result as string;
+        const lines = csvText.split('\n');
+        if (lines.length < 2) {
+          alert('올바른 CSV 파일이 아닙니다.');
+          return;
+        }
+
+        // CSV 파싱 (두 번째 줄에서 데이터 추출)
+        const dataLine = lines[1];
+        const match = dataLine.match(/"([^"]+)","([^"]+)"/);
+        if (!match) {
+          alert('올바른 형식의 파일이 아닙니다.');
+          return;
+        }
+
+        const base64Data = match[2];
+        const jsonString = decodeURIComponent(escape(atob(base64Data)));
+        const data = JSON.parse(jsonString);
+
+        // 주사위 타입 설정
+        setPreviewDice(data.type as DiceType);
+
+        // 약간의 지연 후 커스터마이징 적용
+        setTimeout(() => {
+          // 기존 데이터 초기화
+          clearFaceImages();
+          clearFaceTexts();
+
+          // 이미지 적용
+          if (data.faceImages) {
+            Object.entries(data.faceImages).forEach(([key, value]) => {
+              setFaceImage(Number(key), value as string);
+            });
+          }
+
+          // 텍스트 적용
+          if (data.faceTexts) {
+            Object.entries(data.faceTexts).forEach(([key, value]) => {
+              setFaceText(Number(key), value as string);
+            });
+          }
+
+          // 모드 설정
+          const hasImages = data.faceImages && Object.keys(data.faceImages).length > 0;
+          setCustomizeMode(hasImages ? 'image' : 'text');
+          setIsCustomizeOpen(true);
+        }, 100);
+
+      } catch (error) {
+        alert('파일을 불러오는 중 오류가 발생했습니다.');
+        console.error(error);
+      }
+    };
+    reader.readAsText(file);
+
+    // 파일 입력 초기화
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
+
   const faceImages = previewDice?.faceImages || {};
+  const faceTexts = previewDice?.faceTexts || {};
   const faceCount = previewDice ? DICE_CONFIGS[previewDice.type].faces : 0;
+
+  // 커스터마이징 여부 확인
+  const hasCustomization =
+    Object.keys(faceImages).length > 0 ||
+    Object.values(faceTexts).some(text => text && text.trim() !== '');
 
   return (
     <div className="min-h-screen bg-white text-black flex flex-col">
@@ -119,64 +237,191 @@ export function TitleScreen() {
 
             {/* 오른쪽: 커스터마이징 & 트레이 */}
             <div className="space-y-6">
-              {/* 커스터마이징 패널 */}
+              {/* 커스터마이징 패널 (토글) */}
               {previewDice && (
-                <div className="border border-black p-6 space-y-6">
-                  <h2 className="text-lg font-bold border-b border-black pb-3">면 커스터마이징</h2>
-
-                  {/* 커스텀 이미지 업로드 */}
-                  <div>
-                    <div className="flex items-center justify-between mb-3">
-                      <label className="text-sm text-gray-600">
-                        각 면에 이미지 추가 ({faceCount}면)
-                      </label>
-                      {Object.keys(faceImages).length > 0 && (
-                        <button
-                          onClick={clearFaceImages}
-                          className="text-xs text-gray-600 hover:text-black underline"
-                        >
-                          모두 제거
-                        </button>
+                <div className="border border-black">
+                  {/* 토글 헤더 */}
+                  <button
+                    onClick={() => setIsCustomizeOpen(!isCustomizeOpen)}
+                    className="w-full px-6 py-4 flex items-center justify-between hover:bg-gray-50 transition-colors"
+                  >
+                    <div className="flex items-center gap-2">
+                      <h2 className="text-lg font-bold">면 커스터마이징</h2>
+                      {hasCustomization && (
+                        <span className="text-xs bg-black text-white px-2 py-0.5">적용됨</span>
                       )}
                     </div>
-
-                    <div className={`grid gap-2 ${faceCount <= 6 ? 'grid-cols-6' : faceCount <= 12 ? 'grid-cols-6' : 'grid-cols-5'}`}>
-                      {Array.from({ length: faceCount }, (_, i) => i + 1).map((num) => (
-                        <button
-                          key={num}
-                          onClick={() => handleImageUpload(num)}
-                          className={`aspect-square flex items-center justify-center text-sm font-bold transition-all overflow-hidden border ${
-                            faceImages[num]
-                              ? 'border-black border-2'
-                              : 'border-gray-300 bg-gray-50 hover:bg-gray-100 hover:border-black'
-                          }`}
-                          style={
-                            faceImages[num]
-                              ? {
-                                  backgroundImage: `url(${faceImages[num]})`,
-                                  backgroundSize: 'cover',
-                                  backgroundPosition: 'center',
-                                }
-                              : {}
-                          }
-                        >
-                          {!faceImages[num] && num}
-                        </button>
-                      ))}
-                    </div>
-                    <p className="text-xs text-gray-500 mt-2">
-                      클릭해서 해당 면에 이미지를 추가하세요
-                    </p>
-                  </div>
-
-                  {/* 트레이에 추가 버튼 */}
-                  <button
-                    onClick={addToTray}
-                    className="w-full py-4 bg-black text-white font-bold text-lg border border-black hover:bg-gray-800 transition-colors"
-                  >
-                    + 트레이에 추가
+                    <span className="text-xl">{isCustomizeOpen ? '−' : '+'}</span>
                   </button>
+
+                  {/* 토글 컨텐츠 */}
+                  {isCustomizeOpen && (
+                    <div className="px-6 pb-6 space-y-4 border-t border-gray-200">
+                      {/* 모드 선택 탭 */}
+                      <div className="flex border-b border-gray-200 mt-4">
+                        <button
+                          onClick={() => {
+                            setCustomizeMode('image');
+                            clearFaceTexts();
+                          }}
+                          className={`flex-1 py-2 text-sm font-medium border-b-2 transition-colors ${
+                            customizeMode === 'image'
+                              ? 'border-black text-black'
+                              : 'border-transparent text-gray-500 hover:text-black'
+                          }`}
+                        >
+                          이미지
+                        </button>
+                        <button
+                          onClick={() => {
+                            setCustomizeMode('text');
+                            clearFaceImages();
+                          }}
+                          className={`flex-1 py-2 text-sm font-medium border-b-2 transition-colors ${
+                            customizeMode === 'text'
+                              ? 'border-black text-black'
+                              : 'border-transparent text-gray-500 hover:text-black'
+                          }`}
+                        >
+                          텍스트
+                        </button>
+                      </div>
+
+                      {/* 이미지 모드 */}
+                      {customizeMode === 'image' && (
+                        <div>
+                          <div className="flex items-center justify-between mb-3">
+                            <label className="text-sm text-gray-600">
+                              각 면에 이미지 추가 ({faceCount}면)
+                            </label>
+                            {Object.keys(faceImages).length > 0 && (
+                              <button
+                                onClick={clearFaceImages}
+                                className="text-xs text-gray-600 hover:text-black underline"
+                              >
+                                모두 제거
+                              </button>
+                            )}
+                          </div>
+
+                          <div className={`grid gap-2 ${faceCount <= 6 ? 'grid-cols-6' : faceCount <= 12 ? 'grid-cols-6' : 'grid-cols-5'}`}>
+                            {Array.from({ length: faceCount }, (_, i) => i + 1).map((num) => (
+                              <button
+                                key={num}
+                                onClick={() => handleImageUpload(num)}
+                                className={`aspect-square flex items-center justify-center text-sm font-bold transition-all overflow-hidden border ${
+                                  faceImages[num]
+                                    ? 'border-black border-2'
+                                    : 'border-gray-300 bg-gray-50 hover:bg-gray-100 hover:border-black'
+                                }`}
+                                style={
+                                  faceImages[num]
+                                    ? {
+                                        backgroundImage: `url(${faceImages[num]})`,
+                                        backgroundSize: 'cover',
+                                        backgroundPosition: 'center',
+                                      }
+                                    : {}
+                                }
+                              >
+                                {!faceImages[num] && num}
+                              </button>
+                            ))}
+                          </div>
+                          <p className="text-xs text-gray-500 mt-2">
+                            클릭해서 해당 면에 이미지를 추가하세요
+                          </p>
+                        </div>
+                      )}
+
+                      {/* 텍스트 모드 */}
+                      {customizeMode === 'text' && (
+                        <div>
+                          <div className="flex items-center justify-between mb-3">
+                            <label className="text-sm text-gray-600">
+                              각 면에 텍스트 입력 ({faceCount}면)
+                            </label>
+                            {Object.values(faceTexts).some(t => t && t.trim() !== '') && (
+                              <button
+                                onClick={clearFaceTexts}
+                                className="text-xs text-gray-600 hover:text-black underline"
+                              >
+                                모두 제거
+                              </button>
+                            )}
+                          </div>
+
+                          <div className={`grid gap-2 ${faceCount <= 6 ? 'grid-cols-2' : 'grid-cols-3'}`}>
+                            {Array.from({ length: faceCount }, (_, i) => i + 1).map((num) => (
+                              <div key={num} className="flex items-center gap-1">
+                                <span className="text-xs text-gray-500 w-5 shrink-0">{num}:</span>
+                                <input
+                                  type="text"
+                                  value={faceTexts[num] || ''}
+                                  onChange={(e) => handleTextChange(num, e.target.value)}
+                                  placeholder={String(num)}
+                                  className="w-full min-w-0 px-2 py-1 text-sm border border-gray-300 focus:border-black focus:outline-none"
+                                  maxLength={10}
+                                />
+                              </div>
+                            ))}
+                          </div>
+                          <p className="text-xs text-gray-500 mt-2">
+                            비워두면 기본 숫자가 표시됩니다
+                          </p>
+                        </div>
+                      )}
+
+                      {/* 구분선 */}
+                      <div className="border-t border-gray-200 pt-4">
+                        <p className="text-sm text-gray-600 mb-2">저장/불러오기</p>
+                        <div className="flex gap-2 mb-2">
+                          <input
+                            type="text"
+                            value={saveName}
+                            onChange={(e) => setSaveName(e.target.value)}
+                            placeholder="저장할 이름"
+                            className="flex-1 min-w-0 px-2 py-1 text-sm border border-gray-300 focus:border-black focus:outline-none"
+                          />
+                          <button
+                            onClick={handleSaveCustomization}
+                            disabled={!hasCustomization}
+                            className={`px-3 py-1 text-sm font-medium border transition-colors ${
+                              hasCustomization
+                                ? 'bg-white text-black border-black hover:bg-gray-100'
+                                : 'bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed'
+                            }`}
+                          >
+                            저장
+                          </button>
+                        </div>
+                        <input
+                          ref={fileInputRef}
+                          type="file"
+                          accept=".csv"
+                          onChange={handleLoadCustomization}
+                          className="hidden"
+                        />
+                        <button
+                          onClick={() => fileInputRef.current?.click()}
+                          className="w-full px-3 py-1 text-sm font-medium bg-white text-black border border-gray-300 hover:border-black hover:bg-gray-50 transition-colors"
+                        >
+                          CSV 불러오기
+                        </button>
+                      </div>
+                    </div>
+                  )}
                 </div>
+              )}
+
+              {/* 트레이에 추가 버튼 */}
+              {previewDice && (
+                <button
+                  onClick={addToTray}
+                  className="w-full py-4 bg-black text-white font-bold text-lg border border-black hover:bg-gray-800 transition-colors"
+                >
+                  + 트레이에 추가
+                </button>
               )}
 
               {/* 선택된 주사위 트레이 */}
@@ -201,27 +446,31 @@ export function TitleScreen() {
                   </p>
                 ) : (
                   <div className="grid grid-cols-4 gap-3">
-                    {selectedDice.map((dice) => (
-                      <div
-                        key={dice.id}
-                        className="relative group"
-                      >
-                        <div className="aspect-square flex items-center justify-center text-lg font-bold bg-gray-50 border border-black">
-                          {dice.customization.type}
-                          {dice.customization.faceImages && Object.keys(dice.customization.faceImages).length > 0 && (
-                            <span className="absolute bottom-1 right-1 text-xs bg-black text-white px-1">
-                              IMG
-                            </span>
-                          )}
-                        </div>
-                        <button
-                          onClick={() => removeFromTray(dice.id)}
-                          className="absolute -top-2 -right-2 w-6 h-6 bg-black text-white text-xs opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center"
+                    {selectedDice.map((dice) => {
+                      const hasImg = dice.customization.faceImages && Object.keys(dice.customization.faceImages).length > 0;
+                      const hasTxt = dice.customization.faceTexts && Object.values(dice.customization.faceTexts).some(t => t && t.trim() !== '');
+                      return (
+                        <div
+                          key={dice.id}
+                          className="relative group"
                         >
-                          x
-                        </button>
-                      </div>
-                    ))}
+                          <div className="aspect-square flex items-center justify-center text-lg font-bold bg-gray-50 border border-black">
+                            {dice.customization.type}
+                            {(hasImg || hasTxt) && (
+                              <span className="absolute bottom-1 right-1 text-xs bg-black text-white px-1">
+                                {hasImg ? 'IMG' : 'TXT'}
+                              </span>
+                            )}
+                          </div>
+                          <button
+                            onClick={() => removeFromTray(dice.id)}
+                            className="absolute -top-2 -right-2 w-6 h-6 bg-black text-white text-xs opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center"
+                          >
+                            x
+                          </button>
+                        </div>
+                      );
+                    })}
                   </div>
                 )}
 

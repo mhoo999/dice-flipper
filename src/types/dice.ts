@@ -26,6 +26,7 @@ export interface DiceCustomization {
   material: 'plastic' | 'metal' | 'glass' | 'wood';
   opacity: number;
   faceImages?: Record<number, string>; // 면 번호 → 이미지 URL
+  faceTexts?: Record<number, string>; // 면 번호 → 커스텀 텍스트
 }
 
 // 주사위 상태

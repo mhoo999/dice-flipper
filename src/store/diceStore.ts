@@ -38,6 +38,8 @@ interface DiceStore {
   setPreviewDice: (type: DiceType) => void;
   setFaceImage: (faceNumber: number, imageUrl: string) => void;
   clearFaceImages: () => void;
+  setFaceText: (faceNumber: number, text: string) => void;
+  clearFaceTexts: () => void;
   addToTray: () => void;
   removeFromTray: (id: string) => void;
   clearTray: () => void;
@@ -61,6 +63,7 @@ const createDefaultCustomization = (type: DiceType): DiceCustomization => {
     material: 'plastic',
     opacity: 1,
     faceImages: {},
+    faceTexts: {},
   };
 };
 
@@ -105,6 +108,33 @@ export const useDiceStore = create<DiceStore>()(
         });
       },
 
+      // 면에 텍스트 설정
+      setFaceText: (faceNumber, text) => {
+        const { previewDice } = get();
+        if (!previewDice) return;
+        set({
+          previewDice: {
+            ...previewDice,
+            faceTexts: {
+              ...previewDice.faceTexts,
+              [faceNumber]: text,
+            },
+          },
+        });
+      },
+
+      // 모든 면 텍스트 제거
+      clearFaceTexts: () => {
+        const { previewDice } = get();
+        if (!previewDice) return;
+        set({
+          previewDice: {
+            ...previewDice,
+            faceTexts: {},
+          },
+        });
+      },
+
       // 트레이에 추가
       addToTray: () => {
         const { previewDice, selectedDice } = get();
@@ -116,6 +146,7 @@ export const useDiceStore = create<DiceStore>()(
             ...previewDice,
             id: generateId(),
             faceImages: previewDice.faceImages ? { ...previewDice.faceImages } : {},
+            faceTexts: previewDice.faceTexts ? { ...previewDice.faceTexts } : {},
           },
         };
 
