@@ -13,14 +13,6 @@ interface Dice3DProps {
   dice: DiceInPlay;
 }
 
-// 재질별 머티리얼 속성
-const MATERIAL_PROPS = {
-  plastic: { metalness: 0.1, roughness: 0.4 },
-  metal: { metalness: 0.9, roughness: 0.2 },
-  glass: { metalness: 0.1, roughness: 0.05, transparent: true },
-  wood: { metalness: 0, roughness: 0.8 },
-};
-
 export function Dice3D({ dice }: Dice3DProps) {
   const rigidBodyRef = useRef<RapierRigidBody>(null);
   const meshRef = useRef<THREE.Mesh>(null);
@@ -30,7 +22,6 @@ export function Dice3D({ dice }: Dice3DProps) {
   const setDiceResult = useDiceStore((state) => state.setDiceResult);
 
   const { customization, position, rotation, isRolling } = dice;
-  const materialProps = MATERIAL_PROPS[customization.material];
 
   // 텍스처/머티리얼 생성
   const materials = useMemo(() => {
@@ -42,13 +33,11 @@ export function Dice3D({ dice }: Dice3DProps) {
     if (isRolling && rigidBodyRef.current) {
       const rb = rigidBodyRef.current;
 
-      // 위치 리셋
       rb.setTranslation(
         { x: position[0], y: position[1], z: position[2] },
         true
       );
 
-      // 랜덤 회전
       rb.setRotation(
         new THREE.Quaternion().setFromEuler(
           new THREE.Euler(rotation[0], rotation[1], rotation[2])
@@ -56,7 +45,6 @@ export function Dice3D({ dice }: Dice3DProps) {
         true
       );
 
-      // 힘 적용 (야추처럼 던지기)
       const force = {
         x: (Math.random() - 0.5) * 15,
         y: -5,
@@ -94,7 +82,6 @@ export function Dice3D({ dice }: Dice3DProps) {
     if (isSlowEnough) {
       stableFrames.current++;
 
-      // 30프레임 동안 안정적이면 결과 확정
       if (stableFrames.current > 30) {
         const quaternion = new THREE.Quaternion();
         const rot = rb.rotation();
@@ -109,42 +96,9 @@ export function Dice3D({ dice }: Dice3DProps) {
     }
   });
 
-  // 주사위 타입별 형태 렌더링
-  const renderDiceGeometry = () => {
-    const { type } = customization;
-    const scale = 0.5;
+  const scale = 0.5;
 
-    switch (type) {
-      case 'D4':
-        return <tetrahedronGeometry args={[scale * 1.2, 0]} />;
-      case 'D6':
-        return <boxGeometry args={[scale, scale, scale]} />;
-      case 'D8':
-        return <octahedronGeometry args={[scale * 0.7, 0]} />;
-      case 'D10':
-        return <dodecahedronGeometry args={[scale * 0.6, 0]} />;
-      case 'D12':
-        return <dodecahedronGeometry args={[scale * 0.65, 0]} />;
-      case 'D20':
-        return <icosahedronGeometry args={[scale * 0.65, 0]} />;
-      default:
-        return <boxGeometry args={[scale, scale, scale]} />;
-    }
-  };
-
-  // Collider 형태
-  const renderCollider = () => {
-    const { type } = customization;
-
-    switch (type) {
-      case 'D6':
-        return <CuboidCollider args={[0.25, 0.25, 0.25]} />;
-      default:
-        return <BallCollider args={[0.35]} />;
-    }
-  };
-
-  // D6는 면별 텍스처 적용
+  // D6는 면별 텍스처 적용 (이미지가 있을 때)
   if (customization.type === 'D6' && Array.isArray(materials)) {
     return (
       <RigidBody
@@ -159,11 +113,38 @@ export function Dice3D({ dice }: Dice3DProps) {
       >
         <CuboidCollider args={[0.25, 0.25, 0.25]} />
         <mesh ref={meshRef} castShadow receiveShadow material={materials}>
-          <boxGeometry args={[0.5, 0.5, 0.5]} />
+          <boxGeometry args={[scale, scale, scale]} />
         </mesh>
       </RigidBody>
     );
   }
+
+  // 다른 다면체들 - flatShading으로 면 구분
+  const renderGeometry = () => {
+    switch (customization.type) {
+      case 'D4':
+        return <tetrahedronGeometry args={[scale * 1.2, 0]} />;
+      case 'D8':
+        return <octahedronGeometry args={[scale * 0.7, 0]} />;
+      case 'D10':
+        return <dodecahedronGeometry args={[scale * 0.6, 0]} />;
+      case 'D12':
+        return <dodecahedronGeometry args={[scale * 0.65, 0]} />;
+      case 'D20':
+        return <icosahedronGeometry args={[scale * 0.65, 0]} />;
+      default:
+        return <boxGeometry args={[scale, scale, scale]} />;
+    }
+  };
+
+  const renderCollider = () => {
+    switch (customization.type) {
+      case 'D6':
+        return <CuboidCollider args={[0.25, 0.25, 0.25]} />;
+      default:
+        return <BallCollider args={[0.35]} />;
+    }
+  };
 
   return (
     <RigidBody
@@ -178,13 +159,8 @@ export function Dice3D({ dice }: Dice3DProps) {
     >
       {renderCollider()}
       <mesh ref={meshRef} castShadow receiveShadow>
-        {renderDiceGeometry()}
-        <meshStandardMaterial
-          color={customization.color}
-          {...materialProps}
-          opacity={customization.opacity}
-          transparent={customization.opacity < 1}
-        />
+        {renderGeometry()}
+        <meshStandardMaterial color="#f5f5f5" metalness={0.1} roughness={0.4} flatShading />
       </mesh>
     </RigidBody>
   );

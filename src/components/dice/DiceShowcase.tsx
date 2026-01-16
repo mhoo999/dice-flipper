@@ -11,17 +11,8 @@ interface DiceShowcaseProps {
   customization: DiceCustomization;
 }
 
-// 재질별 머티리얼 속성
-const MATERIAL_PROPS = {
-  plastic: { metalness: 0.1, roughness: 0.4 },
-  metal: { metalness: 0.9, roughness: 0.2 },
-  glass: { metalness: 0.1, roughness: 0.05, transparent: true },
-  wood: { metalness: 0, roughness: 0.8 },
-};
-
 function DiceMesh({ customization }: { customization: DiceCustomization }) {
   const meshRef = useRef<THREE.Mesh>(null);
-  const materialProps = MATERIAL_PROPS[customization.material];
 
   // 텍스처 생성
   const materials = useMemo(() => {
@@ -36,13 +27,24 @@ function DiceMesh({ customization }: { customization: DiceCustomization }) {
     }
   });
 
+  const scale = 1.2;
+
+  // D6는 6개 면에 각각 다른 머티리얼 (이미지가 있을 때)
+  if (customization.type === 'D6' && Array.isArray(materials)) {
+    return (
+      <Float speed={2} rotationIntensity={0.5} floatIntensity={0.5}>
+        <mesh ref={meshRef} castShadow receiveShadow material={materials}>
+          <boxGeometry args={[scale, scale, scale]} />
+        </mesh>
+      </Float>
+    );
+  }
+
+  // 다른 다면체들 - flatShading으로 면 구분
   const renderGeometry = () => {
-    const scale = 1.2;
     switch (customization.type) {
       case 'D4':
         return <tetrahedronGeometry args={[scale, 0]} />;
-      case 'D6':
-        return <boxGeometry args={[scale, scale, scale]} />;
       case 'D8':
         return <octahedronGeometry args={[scale * 0.85, 0]} />;
       case 'D10':
@@ -56,28 +58,11 @@ function DiceMesh({ customization }: { customization: DiceCustomization }) {
     }
   };
 
-  // D6는 6개 면에 각각 다른 머티리얼
-  if (customization.type === 'D6' && Array.isArray(materials)) {
-    return (
-      <Float speed={2} rotationIntensity={0.5} floatIntensity={0.5}>
-        <mesh ref={meshRef} castShadow receiveShadow material={materials}>
-          <boxGeometry args={[1.2, 1.2, 1.2]} />
-        </mesh>
-      </Float>
-    );
-  }
-
   return (
     <Float speed={2} rotationIntensity={0.5} floatIntensity={0.5}>
       <mesh ref={meshRef} castShadow receiveShadow>
         {renderGeometry()}
-        <meshStandardMaterial
-          color={customization.color}
-          {...materialProps}
-          opacity={customization.opacity}
-          transparent={customization.opacity < 1}
-          envMapIntensity={1.5}
-        />
+        <meshStandardMaterial color="#f5f5f5" metalness={0.1} roughness={0.4} flatShading />
       </mesh>
     </Float>
   );
@@ -87,16 +72,16 @@ export function DiceShowcaseScene({ customization }: DiceShowcaseProps) {
   return (
     <>
       {/* 조명 */}
-      <ambientLight intensity={0.5} />
+      <ambientLight intensity={0.4} />
       <spotLight
         position={[5, 5, 5]}
         angle={0.3}
         penumbra={1}
-        intensity={1.2}
+        intensity={1.5}
         castShadow
       />
-      <pointLight position={[-5, 5, -5]} intensity={0.5} color="#88aaff" />
-      <pointLight position={[0, -5, 0]} intensity={0.3} color="#ff8888" />
+      <pointLight position={[-5, 5, -5]} intensity={0.8} color="#88aaff" />
+      <pointLight position={[0, -5, 0]} intensity={0.4} color="#ff8888" />
 
       {/* 환경맵 */}
       <Environment preset="city" />

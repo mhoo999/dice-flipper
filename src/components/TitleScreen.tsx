@@ -1,11 +1,11 @@
 'use client';
 
-import { Suspense, useEffect, useRef } from 'react';
+import { Suspense, useEffect } from 'react';
 import { Canvas } from '@react-three/fiber';
 import { useRouter } from 'next/navigation';
 import dynamic from 'next/dynamic';
 import { useDiceStore } from '@/store/diceStore';
-import { DiceType, DICE_CONFIGS, DEFAULT_PRESETS } from '@/types/dice';
+import { DiceType, DICE_CONFIGS } from '@/types/dice';
 
 const DiceShowcaseScene = dynamic(
   () => import('./dice/DiceShowcase').then((mod) => mod.DiceShowcaseScene),
@@ -14,23 +14,12 @@ const DiceShowcaseScene = dynamic(
 
 const DICE_TYPES: DiceType[] = ['D4', 'D6', 'D8', 'D10', 'D12', 'D20'];
 
-function LoadingFallback() {
-  return (
-    <div className="w-full h-full flex items-center justify-center">
-      <div className="text-white/50 animate-pulse">로딩 중...</div>
-    </div>
-  );
-}
-
 export function TitleScreen() {
   const router = useRouter();
-  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const previewDice = useDiceStore((state) => state.previewDice);
   const selectedDice = useDiceStore((state) => state.selectedDice);
   const setPreviewDice = useDiceStore((state) => state.setPreviewDice);
-  const updatePreviewCustomization = useDiceStore((state) => state.updatePreviewCustomization);
-  const applyPresetToPreview = useDiceStore((state) => state.applyPresetToPreview);
   const addToTray = useDiceStore((state) => state.addToTray);
   const removeFromTray = useDiceStore((state) => state.removeFromTray);
   const clearTray = useDiceStore((state) => state.clearTray);
@@ -73,6 +62,7 @@ export function TitleScreen() {
 
   const faceImages = previewDice?.faceImages || {};
   const isD6 = previewDice?.type === 'D6';
+  const faceCount = previewDice ? DICE_CONFIGS[previewDice.type].faces : 0;
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-[#0a0a1a] to-[#1a1a2e] text-white">
@@ -133,132 +123,52 @@ export function TitleScreen() {
             {/* 커스터마이징 패널 */}
             {previewDice && (
               <div className="bg-white/5 rounded-2xl p-6 space-y-6">
-                <h2 className="text-xl font-bold">커스터마이징</h2>
+                <h2 className="text-xl font-bold">면 커스터마이징</h2>
 
-                {/* 프리셋 */}
+                {/* 커스텀 이미지 업로드 */}
                 <div>
-                  <label className="text-sm text-gray-400 block mb-2">프리셋</label>
-                  <div className="grid grid-cols-3 gap-2">
-                    {DEFAULT_PRESETS.map((preset) => (
+                  <div className="flex items-center justify-between mb-3">
+                    <label className="text-sm text-gray-400">
+                      각 면에 이미지 추가 ({faceCount}면)
+                    </label>
+                    {Object.keys(faceImages).length > 0 && (
                       <button
-                        key={preset.id}
-                        onClick={() => applyPresetToPreview(preset.id)}
-                        className="px-3 py-2 rounded-lg text-sm transition-all hover:scale-105"
-                        style={{
-                          backgroundColor: preset.customization.color,
-                          color: preset.customization.numberColor,
-                        }}
+                        onClick={clearFaceImages}
+                        className="text-xs text-red-400 hover:text-red-300"
                       >
-                        {preset.name}
+                        모두 제거
                       </button>
-                    ))}
+                    )}
                   </div>
-                </div>
 
-                {/* 색상 */}
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="text-sm text-gray-400 block mb-2">주사위 색상</label>
-                    <input
-                      type="color"
-                      value={previewDice.color}
-                      onChange={(e) => updatePreviewCustomization({ color: e.target.value })}
-                      className="w-full h-12 rounded-lg cursor-pointer"
-                    />
-                  </div>
-                  <div>
-                    <label className="text-sm text-gray-400 block mb-2">숫자/점 색상</label>
-                    <input
-                      type="color"
-                      value={previewDice.numberColor}
-                      onChange={(e) => updatePreviewCustomization({ numberColor: e.target.value })}
-                      className="w-full h-12 rounded-lg cursor-pointer"
-                    />
-                  </div>
-                </div>
-
-                {/* 재질 */}
-                <div>
-                  <label className="text-sm text-gray-400 block mb-2">재질</label>
-                  <div className="grid grid-cols-4 gap-2">
-                    {(['plastic', 'metal', 'glass', 'wood'] as const).map((material) => (
+                  <div className={`grid gap-2 ${faceCount <= 6 ? 'grid-cols-6' : faceCount <= 12 ? 'grid-cols-6' : 'grid-cols-5'}`}>
+                    {Array.from({ length: faceCount }, (_, i) => i + 1).map((num) => (
                       <button
-                        key={material}
-                        onClick={() => updatePreviewCustomization({ material })}
-                        className={`py-2 rounded-lg text-sm transition-all ${
-                          previewDice.material === material
-                            ? 'bg-purple-500'
-                            : 'bg-white/10 hover:bg-white/20'
+                        key={num}
+                        onClick={() => handleImageUpload(num)}
+                        className={`aspect-square rounded-lg flex items-center justify-center text-sm font-bold transition-all overflow-hidden border-2 ${
+                          faceImages[num]
+                            ? 'border-green-400'
+                            : 'border-white/20 bg-white/5 hover:bg-white/10 hover:border-white/40'
                         }`}
+                        style={
+                          faceImages[num]
+                            ? {
+                                backgroundImage: `url(${faceImages[num]})`,
+                                backgroundSize: 'cover',
+                                backgroundPosition: 'center',
+                              }
+                            : {}
+                        }
                       >
-                        {material === 'plastic' && '플라스틱'}
-                        {material === 'metal' && '메탈'}
-                        {material === 'glass' && '유리'}
-                        {material === 'wood' && '나무'}
+                        {!faceImages[num] && num}
                       </button>
                     ))}
                   </div>
+                  <p className="text-xs text-gray-500 mt-2">
+                    클릭해서 해당 면에 이미지를 추가하세요
+                  </p>
                 </div>
-
-                {/* 투명도 */}
-                <div>
-                  <label className="text-sm text-gray-400 block mb-2">
-                    투명도: {Math.round(previewDice.opacity * 100)}%
-                  </label>
-                  <input
-                    type="range"
-                    min="0.3"
-                    max="1"
-                    step="0.1"
-                    value={previewDice.opacity}
-                    onChange={(e) => updatePreviewCustomization({ opacity: parseFloat(e.target.value) })}
-                    className="w-full"
-                  />
-                </div>
-
-                {/* D6 커스텀 이미지 업로드 */}
-                {isD6 && (
-                  <div>
-                    <div className="flex items-center justify-between mb-2">
-                      <label className="text-sm text-gray-400">면에 커스텀 이미지</label>
-                      {Object.keys(faceImages).length > 0 && (
-                        <button
-                          onClick={clearFaceImages}
-                          className="text-xs text-red-400 hover:text-red-300"
-                        >
-                          모두 제거
-                        </button>
-                      )}
-                    </div>
-                    <div className="grid grid-cols-6 gap-2">
-                      {[1, 2, 3, 4, 5, 6].map((num) => (
-                        <button
-                          key={num}
-                          onClick={() => handleImageUpload(num)}
-                          className={`aspect-square rounded-lg flex items-center justify-center text-sm font-bold transition-all overflow-hidden ${
-                            faceImages[num]
-                              ? 'ring-2 ring-green-400'
-                              : 'bg-white/10 hover:bg-white/20'
-                          }`}
-                          style={
-                            faceImages[num]
-                              ? {
-                                  backgroundImage: `url(${faceImages[num]})`,
-                                  backgroundSize: 'cover',
-                                  backgroundPosition: 'center',
-                                }
-                              : {}
-                          }
-                        >
-                          {!faceImages[num] && num}
-                        </button>
-                      ))}
-                    </div>
-                    <p className="text-xs text-gray-500 mt-2">
-                      클릭해서 해당 면에 이미지를 추가하세요
-                    </p>
-                  </div>
-                )}
 
                 {/* 트레이에 추가 버튼 */}
                 <button
@@ -297,14 +207,7 @@ export function TitleScreen() {
                       key={dice.id}
                       className="relative group"
                     >
-                      <div
-                        className="aspect-square rounded-xl flex items-center justify-center text-lg font-bold border-2 border-white/10"
-                        style={{
-                          backgroundColor: dice.customization.color,
-                          color: dice.customization.numberColor,
-                          opacity: dice.customization.opacity,
-                        }}
-                      >
+                      <div className="aspect-square rounded-xl flex items-center justify-center text-lg font-bold bg-white/10 border-2 border-white/20">
                         {dice.customization.type}
                         {dice.customization.faceImages && Object.keys(dice.customization.faceImages).length > 0 && (
                           <span className="absolute bottom-1 right-1 text-xs bg-green-500 text-white px-1 rounded">

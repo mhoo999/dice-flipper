@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import { DiceCustomization, DiceType, RollResult, DEFAULT_PRESETS } from '@/types/dice';
+import { DiceCustomization, DiceType, RollResult } from '@/types/dice';
 
 // 선택된 주사위 (트레이에 담긴 주사위)
 export interface SelectedDice {
@@ -36,8 +36,6 @@ interface DiceStore {
 
   // 타이틀 화면 액션
   setPreviewDice: (type: DiceType) => void;
-  updatePreviewCustomization: (customization: Partial<DiceCustomization>) => void;
-  applyPresetToPreview: (presetId: string) => void;
   setFaceImage: (faceNumber: number, imageUrl: string) => void;
   clearFaceImages: () => void;
   addToTray: () => void;
@@ -55,14 +53,13 @@ interface DiceStore {
 const generateId = () => Math.random().toString(36).substring(2, 9);
 
 const createDefaultCustomization = (type: DiceType): DiceCustomization => {
-  const defaultPreset = DEFAULT_PRESETS[0].customization;
   return {
     id: generateId(),
     type,
-    color: defaultPreset.color,
-    numberColor: defaultPreset.numberColor,
-    material: defaultPreset.material,
-    opacity: defaultPreset.opacity,
+    color: '#f5f5f5',
+    numberColor: '#1a1a1a',
+    material: 'plastic',
+    opacity: 1,
     faceImages: {},
   };
 };
@@ -79,30 +76,6 @@ export const useDiceStore = create<DiceStore>()(
       // 프리뷰 주사위 설정
       setPreviewDice: (type) => {
         set({ previewDice: createDefaultCustomization(type) });
-      },
-
-      // 프리뷰 주사위 커스터마이징
-      updatePreviewCustomization: (customization) => {
-        const { previewDice } = get();
-        if (!previewDice) return;
-        set({
-          previewDice: { ...previewDice, ...customization },
-        });
-      },
-
-      // 프리셋 적용
-      applyPresetToPreview: (presetId) => {
-        const { previewDice } = get();
-        if (!previewDice) return;
-        const preset = DEFAULT_PRESETS.find((p) => p.id === presetId);
-        if (!preset) return;
-        set({
-          previewDice: {
-            ...previewDice,
-            ...preset.customization,
-            faceImages: {}, // 프리셋 적용 시 커스텀 이미지 초기화
-          },
-        });
       },
 
       // 면에 이미지 설정
