@@ -4,6 +4,7 @@ import { Suspense, useEffect, useState, useRef } from 'react';
 import { Canvas } from '@react-three/fiber';
 import { useRouter } from 'next/navigation';
 import dynamic from 'next/dynamic';
+import * as XLSX from 'xlsx';
 import { useDiceStore } from '@/store/diceStore';
 import { DiceType, DICE_CONFIGS, DiceCustomization } from '@/types/dice';
 
@@ -18,7 +19,6 @@ export function TitleScreen() {
   const router = useRouter();
   const [isCustomizeOpen, setIsCustomizeOpen] = useState(false);
   const [customizeMode, setCustomizeMode] = useState<'image' | 'text'>('image');
-  const [saveName, setSaveName] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const previewDice = useDiceStore((state) => state.previewDice);
@@ -74,97 +74,153 @@ export function TitleScreen() {
   // CSV로 커스터마이징 저장
   const handleSaveCustomization = () => {
     if (!previewDice) return;
-    if (!saveName.trim()) {
-      alert('저장할 이름을 입력해주세요.');
-      return;
-    }
 
-    const data = {
-      name: saveName.trim(),
-      type: previewDice.type,
-      faceImages: previewDice.faceImages || {},
-      faceTexts: previewDice.faceTexts || {},
-    };
+    const faceCount = DICE_CONFIGS[previewDice.type].faces;
+    const faceImages = previewDice.faceImages || {};
+    const faceTexts = previewDice.faceTexts || {};
 
-    // CSV 형식으로 변환 (JSON을 base64로 인코딩)
-    const jsonString = JSON.stringify(data);
-    const base64Data = btoa(unescape(encodeURIComponent(jsonString)));
-    const csvContent = `name,data\n"${saveName.trim()}","${base64Data}"`;
+    // 헤더 생성
+    const headers = Array.from({ length: faceCount }, (_, i) => `${i + 1}면`).join(',');
+
+    // 데이터 생성 (이미지 URL 또는 텍스트)
+    const values = Array.from({ length: faceCount }, (_, i) => {
+      const faceNum = i + 1;
+      const image = faceImages[faceNum];
+      const text = faceTexts[faceNum];
+
+      // 이미지가 base64면 내보낼 수 없음 (URL만 지원)
+      if (image && image.startsWith('http')) {
+        return image;
+      } else if (text) {
+        return text;
+      }
+      return '';
+    }).join(',');
+
+    const csvContent = `${headers}\n${values}`;
 
     // 파일 다운로드
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const blob = new Blob(['\uFEFF' + csvContent], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
-    link.download = `${saveName.trim()}_dice_customization.csv`;
+    link.download = `${previewDice.type}_customization.csv`;
     link.click();
     URL.revokeObjectURL(url);
-
-    setSaveName('');
   };
 
-  // CSV에서 커스터마이징 불러오기
+  // 파일에서 데이터 추출 후 적용
+  const applyLoadedData = (headers: string[], values: string[]) => {
+    const columnCount = headers.length;
+
+    // 컬럼 수로 주사위 타입 결정
+    const faceToType: Record<number, DiceType> = {
+      4: 'D4',
+      6: 'D6',
+      8: 'D8',
+      10: 'D10',
+      12: 'D12',
+      20: 'D20',
+    };
+
+    const diceType = faceToType[columnCount];
+    if (!diceType) {
+      alert(`지원하지 않는 면 수입니다: ${columnCount}개\n(4, 6, 8, 10, 12, 20면만 지원)`);
+      return;
+    }
+
+    // 주사위 타입 변경
+    setPreviewDice(diceType);
+
+    // 약간의 지연 후 커스터마이징 적용 (타입 변경 반영 대기)
+    setTimeout(() => {
+      // 기존 데이터 초기화
+      clearFaceImages();
+      clearFaceTexts();
+
+      let hasImages = false;
+
+      // 각 면에 값 적용
+      values.forEach((value, index) => {
+        const faceNum = index + 1;
+        if (faceNum > columnCount || !value) return;
+
+        const strValue = String(value).trim();
+        if (!strValue) return;
+
+        // URL이면 이미지로, 아니면 텍스트로 처리
+        if (strValue.startsWith('http://') || strValue.startsWith('https://')) {
+          setFaceImage(faceNum, strValue);
+          hasImages = true;
+        } else {
+          setFaceText(faceNum, strValue);
+        }
+      });
+
+      // 모드 설정
+      setCustomizeMode(hasImages ? 'image' : 'text');
+      setIsCustomizeOpen(true);
+    }, 100);
+  };
+
+  // CSV/Excel에서 커스터마이징 불러오기
   const handleLoadCustomization = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      try {
-        const csvText = event.target?.result as string;
-        const lines = csvText.split('\n');
-        if (lines.length < 2) {
-          alert('올바른 CSV 파일이 아닙니다.');
-          return;
-        }
+    const fileName = file.name.toLowerCase();
+    const isExcel = fileName.endsWith('.xlsx') || fileName.endsWith('.xls');
 
-        // CSV 파싱 (두 번째 줄에서 데이터 추출)
-        const dataLine = lines[1];
-        const match = dataLine.match(/"([^"]+)","([^"]+)"/);
-        if (!match) {
-          alert('올바른 형식의 파일이 아닙니다.');
-          return;
-        }
+    if (isExcel) {
+      // Excel 파일 처리
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        try {
+          const data = new Uint8Array(event.target?.result as ArrayBuffer);
+          const workbook = XLSX.read(data, { type: 'array' });
+          const sheetName = workbook.SheetNames[0];
+          const worksheet = workbook.Sheets[sheetName];
+          const jsonData = XLSX.utils.sheet_to_json<string[]>(worksheet, { header: 1 });
 
-        const base64Data = match[2];
-        const jsonString = decodeURIComponent(escape(atob(base64Data)));
-        const data = JSON.parse(jsonString);
-
-        // 주사위 타입 설정
-        setPreviewDice(data.type as DiceType);
-
-        // 약간의 지연 후 커스터마이징 적용
-        setTimeout(() => {
-          // 기존 데이터 초기화
-          clearFaceImages();
-          clearFaceTexts();
-
-          // 이미지 적용
-          if (data.faceImages) {
-            Object.entries(data.faceImages).forEach(([key, value]) => {
-              setFaceImage(Number(key), value as string);
-            });
+          if (jsonData.length < 2) {
+            alert('올바른 Excel 파일이 아닙니다.');
+            return;
           }
 
-          // 텍스트 적용
-          if (data.faceTexts) {
-            Object.entries(data.faceTexts).forEach(([key, value]) => {
-              setFaceText(Number(key), value as string);
-            });
+          const headers = jsonData[0].map(h => String(h));
+          const values = jsonData[1].map(v => String(v || ''));
+          applyLoadedData(headers, values);
+
+        } catch (error) {
+          alert('파일을 불러오는 중 오류가 발생했습니다.');
+          console.error(error);
+        }
+      };
+      reader.readAsArrayBuffer(file);
+    } else {
+      // CSV 파일 처리
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        try {
+          const csvText = event.target?.result as string;
+          const lines = csvText.trim().split('\n');
+
+          if (lines.length < 2) {
+            alert('올바른 CSV 파일이 아닙니다.');
+            return;
           }
 
-          // 모드 설정
-          const hasImages = data.faceImages && Object.keys(data.faceImages).length > 0;
-          setCustomizeMode(hasImages ? 'image' : 'text');
-          setIsCustomizeOpen(true);
-        }, 100);
+          const headers = lines[0].split(',').map(h => h.trim());
+          const values = lines[1].split(',').map(v => v.trim());
+          applyLoadedData(headers, values);
 
-      } catch (error) {
-        alert('파일을 불러오는 중 오류가 발생했습니다.');
-        console.error(error);
-      }
-    };
-    reader.readAsText(file);
+        } catch (error) {
+          alert('파일을 불러오는 중 오류가 발생했습니다.');
+          console.error(error);
+        }
+      };
+      reader.readAsText(file);
+    }
 
     // 파일 입력 초기화
     if (fileInputRef.current) {
@@ -375,39 +431,35 @@ export function TitleScreen() {
                       {/* 구분선 */}
                       <div className="border-t border-gray-200 pt-4">
                         <p className="text-sm text-gray-600 mb-2">저장/불러오기</p>
-                        <div className="flex gap-2 mb-2">
-                          <input
-                            type="text"
-                            value={saveName}
-                            onChange={(e) => setSaveName(e.target.value)}
-                            placeholder="저장할 이름"
-                            className="flex-1 min-w-0 px-2 py-1 text-sm border border-gray-300 focus:border-black focus:outline-none"
-                          />
+                        <div className="flex gap-2">
                           <button
                             onClick={handleSaveCustomization}
                             disabled={!hasCustomization}
-                            className={`px-3 py-1 text-sm font-medium border transition-colors ${
+                            className={`flex-1 px-3 py-2 text-sm font-medium border transition-colors ${
                               hasCustomization
                                 ? 'bg-white text-black border-black hover:bg-gray-100'
                                 : 'bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed'
                             }`}
                           >
-                            저장
+                            CSV 저장
+                          </button>
+                          <input
+                            ref={fileInputRef}
+                            type="file"
+                            accept=".csv,.xlsx,.xls"
+                            onChange={handleLoadCustomization}
+                            className="hidden"
+                          />
+                          <button
+                            onClick={() => fileInputRef.current?.click()}
+                            className="flex-1 px-3 py-2 text-sm font-medium bg-white text-black border border-gray-300 hover:border-black hover:bg-gray-50 transition-colors"
+                          >
+                            불러오기
                           </button>
                         </div>
-                        <input
-                          ref={fileInputRef}
-                          type="file"
-                          accept=".csv"
-                          onChange={handleLoadCustomization}
-                          className="hidden"
-                        />
-                        <button
-                          onClick={() => fileInputRef.current?.click()}
-                          className="w-full px-3 py-1 text-sm font-medium bg-white text-black border border-gray-300 hover:border-black hover:bg-gray-50 transition-colors"
-                        >
-                          CSV 불러오기
-                        </button>
+                        <p className="text-xs text-gray-400 mt-2">
+                          http로 시작하면 이미지, 아니면 텍스트로 인식
+                        </p>
                       </div>
                     </div>
                   )}
