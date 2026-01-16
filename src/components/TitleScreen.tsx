@@ -434,9 +434,9 @@ export function TitleScreen() {
                         <div className="flex gap-2">
                           <button
                             onClick={handleSaveCustomization}
-                            disabled={!hasCustomization}
+                            disabled={!hasCustomization || customizeMode === 'image'}
                             className={`flex-1 px-3 py-2 text-sm font-medium border transition-colors ${
-                              hasCustomization
+                              hasCustomization && customizeMode !== 'image'
                                 ? 'bg-white text-black border-black hover:bg-gray-100'
                                 : 'bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed'
                             }`}
