@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useState, useRef, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import dynamic from 'next/dynamic';
 import { useDiceStore } from '@/store/diceStore';
@@ -22,6 +22,50 @@ export function FlipperScreen() {
   const isRolling = useDiceStore((state) => state.isRolling);
   const initializePlay = useDiceStore((state) => state.initializePlay);
   const rollAllDice = useDiceStore((state) => state.rollAllDice);
+
+  // 파워 게이지 상태
+  const [power, setPower] = useState(0);
+  const [isCharging, setIsCharging] = useState(false);
+  const chargeInterval = useRef<NodeJS.Timeout | null>(null);
+
+  // 차징 시작
+  const startCharging = useCallback(() => {
+    if (isRolling) return;
+    setIsCharging(true);
+    setPower(0);
+
+    chargeInterval.current = setInterval(() => {
+      setPower((prev) => {
+        if (prev >= 100) return 100;
+        return prev + 2; // 50프레임 = 약 1.6초에 100%
+      });
+    }, 32);
+  }, [isRolling]);
+
+  // 차징 종료 및 던지기
+  const stopChargingAndRoll = useCallback(() => {
+    if (!isCharging) return;
+    setIsCharging(false);
+
+    if (chargeInterval.current) {
+      clearInterval(chargeInterval.current);
+      chargeInterval.current = null;
+    }
+
+    // 현재 파워로 던지기 (최소 10%)
+    const finalPower = Math.max(10, power);
+    rollAllDice(finalPower);
+    setPower(0);
+  }, [isCharging, power, rollAllDice]);
+
+  // 컴포넌트 언마운트 시 인터벌 정리
+  useEffect(() => {
+    return () => {
+      if (chargeInterval.current) {
+        clearInterval(chargeInterval.current);
+      }
+    };
+  }, []);
 
   // 플레이 초기화
   useEffect(() => {
@@ -114,17 +158,33 @@ export function FlipperScreen() {
       {/* 하단 컨트롤 */}
       <div className="absolute bottom-0 left-0 right-0 p-6 bg-white border-t border-black">
         <div className="max-w-md mx-auto space-y-4">
-          {/* 굴리기 버튼 */}
+          {/* 굴리기 버튼 (파워 게이지) */}
           <button
-            onClick={rollAllDice}
+            onMouseDown={startCharging}
+            onMouseUp={stopChargingAndRoll}
+            onMouseLeave={stopChargingAndRoll}
+            onTouchStart={startCharging}
+            onTouchEnd={stopChargingAndRoll}
             disabled={isRolling}
-            className={`w-full py-5 font-bold text-2xl border transition-colors ${
+            className={`relative w-full py-5 font-bold text-2xl border overflow-hidden transition-colors ${
               isRolling
                 ? 'bg-gray-200 text-gray-400 border-gray-300 cursor-not-allowed'
-                : 'bg-black text-white border-black hover:bg-gray-800'
+                : 'bg-black text-white border-black'
             }`}
           >
-            {isRolling ? '굴리는 중...' : '주사위 굴리기'}
+            {/* 파워 게이지 (가운데서 양쪽으로 채워짐) */}
+            {isCharging && (
+              <div
+                className="absolute inset-0 bg-white/30 transition-all"
+                style={{
+                  left: `${50 - power / 2}%`,
+                  right: `${50 - power / 2}%`,
+                }}
+              />
+            )}
+            <span className="relative z-10">
+              {isRolling ? '굴리는 중...' : isCharging ? `${power}%` : '꾹 눌러서 굴리기'}
+            </span>
           </button>
 
           {/* 결과 메시지 */}

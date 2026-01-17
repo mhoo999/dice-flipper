@@ -57,6 +57,14 @@ export function DiceTable({
         />
       </RigidBody>
 
+      {/* 투명 지붕 */}
+      <RigidBody type="fixed" friction={0.3} restitution={0.8}>
+        <CuboidCollider
+          args={[size / 2 + wallThickness, wallThickness / 2, size / 2 + wallThickness]}
+          position={[0, wallHeight, 0]}
+        />
+      </RigidBody>
+
       {/* 테이블 패드 (표면) */}
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.01, 0]} receiveShadow>
         <planeGeometry args={[size - 0.5, size - 0.5]} />

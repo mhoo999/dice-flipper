@@ -46,8 +46,9 @@ interface DiceStore {
 
   // 플리퍼 화면 액션
   initializePlay: () => void;
-  rollAllDice: () => void;
+  rollAllDice: (power?: number) => void;
   rollSingleDice: (id: string) => void;
+  rollPower: number;
   setDiceResult: (id: string, result: number) => void;
   clearHistory: () => void;
 }
@@ -75,6 +76,7 @@ export const useDiceStore = create<DiceStore>()(
       diceInPlay: [],
       rollHistory: [],
       isRolling: false,
+      rollPower: 0,
 
       // 프리뷰 주사위 설정
       setPreviewDice: (type) => {
@@ -192,8 +194,8 @@ export const useDiceStore = create<DiceStore>()(
       },
 
       // 모든 주사위 굴리기
-      rollAllDice: () => {
-        set({ isRolling: true });
+      rollAllDice: (power = 100) => {
+        set({ isRolling: true, rollPower: power });
 
         set((state) => ({
           diceInPlay: state.diceInPlay.map((d) => ({

@@ -20,6 +20,7 @@ export function Dice3D({ dice }: Dice3DProps) {
   const stableFrames = useRef(0);
 
   const setDiceResult = useDiceStore((state) => state.setDiceResult);
+  const rollPower = useDiceStore((state) => state.rollPower);
 
   const { customization, position, rotation, isRolling } = dice;
 
@@ -45,16 +46,19 @@ export function Dice3D({ dice }: Dice3DProps) {
         true
       );
 
+      // 파워에 따른 힘 조절 (최소 20%, 최대 100%)
+      const powerMultiplier = Math.max(0.2, rollPower / 100);
+
       const force = {
-        x: (Math.random() - 0.5) * 8,
-        y: -3,
-        z: (Math.random() - 0.5) * 8,
+        x: (Math.random() - 0.5) * 10 * powerMultiplier,
+        y: -2 - 3 * powerMultiplier,
+        z: (Math.random() - 0.5) * 10 * powerMultiplier,
       };
 
       const torque = {
-        x: (Math.random() - 0.5) * 20,
-        y: (Math.random() - 0.5) * 20,
-        z: (Math.random() - 0.5) * 20,
+        x: (Math.random() - 0.5) * 25 * powerMultiplier,
+        y: (Math.random() - 0.5) * 25 * powerMultiplier,
+        z: (Math.random() - 0.5) * 25 * powerMultiplier,
       };
 
       rb.setLinvel({ x: force.x, y: force.y, z: force.z }, true);
@@ -63,7 +67,7 @@ export function Dice3D({ dice }: Dice3DProps) {
       setIsStable(false);
       stableFrames.current = 0;
     }
-  }, [isRolling, position, rotation]);
+  }, [isRolling, position, rotation, rollPower]);
 
   // 매 프레임 안정성 체크
   useFrame(() => {
