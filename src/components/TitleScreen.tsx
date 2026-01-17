@@ -313,42 +313,44 @@ export function TitleScreen() {
                   {/* 토글 컨텐츠 */}
                   {isCustomizeOpen && (
                     <div className="px-6 pb-6 space-y-4 border-t border-gray-200">
-                      {/* 모드 선택 탭 */}
-                      <div className="flex border-b border-gray-200 mt-4">
-                        <button
-                          onClick={() => {
-                            setCustomizeMode('image');
-                            clearFaceTexts();
-                          }}
-                          className={`flex-1 py-2 text-sm font-medium border-b-2 transition-colors ${
-                            customizeMode === 'image'
-                              ? 'border-black text-black'
-                              : 'border-transparent text-gray-500 hover:text-black'
-                          }`}
-                        >
-                          이미지
-                        </button>
-                        <button
-                          onClick={() => {
-                            setCustomizeMode('text');
-                            clearFaceImages();
-                          }}
-                          className={`flex-1 py-2 text-sm font-medium border-b-2 transition-colors ${
-                            customizeMode === 'text'
-                              ? 'border-black text-black'
-                              : 'border-transparent text-gray-500 hover:text-black'
-                          }`}
-                        >
-                          텍스트
-                        </button>
-                      </div>
+                      {/* 모드 선택 탭 (D6만) */}
+                      {previewDice?.type === 'D6' && (
+                        <div className="flex border-b border-gray-200 mt-4">
+                          <button
+                            onClick={() => {
+                              setCustomizeMode('image');
+                              clearFaceTexts();
+                            }}
+                            className={`flex-1 py-2 text-sm font-medium border-b-2 transition-colors ${
+                              customizeMode === 'image'
+                                ? 'border-black text-black'
+                                : 'border-transparent text-gray-500 hover:text-black'
+                            }`}
+                          >
+                            이미지
+                          </button>
+                          <button
+                            onClick={() => {
+                              setCustomizeMode('text');
+                              clearFaceImages();
+                            }}
+                            className={`flex-1 py-2 text-sm font-medium border-b-2 transition-colors ${
+                              customizeMode === 'text'
+                                ? 'border-black text-black'
+                                : 'border-transparent text-gray-500 hover:text-black'
+                            }`}
+                          >
+                            텍스트
+                          </button>
+                        </div>
+                      )}
 
-                      {/* 이미지 모드 */}
-                      {customizeMode === 'image' && (
+                      {/* 이미지 모드 (D6 전용) */}
+                      {previewDice?.type === 'D6' && customizeMode === 'image' && (
                         <div>
                           <div className="flex items-center justify-between mb-3">
                             <label className="text-sm text-gray-600">
-                              각 면에 이미지 추가 ({faceCount}면)
+                              각 면에 이미지 추가 (6면)
                             </label>
                             {Object.keys(faceImages).length > 0 && (
                               <button
@@ -360,8 +362,8 @@ export function TitleScreen() {
                             )}
                           </div>
 
-                          <div className={`grid gap-2 ${faceCount <= 6 ? 'grid-cols-6' : faceCount <= 12 ? 'grid-cols-6' : 'grid-cols-5'}`}>
-                            {Array.from({ length: faceCount }, (_, i) => i + 1).map((num) => (
+                          <div className="grid grid-cols-6 gap-2">
+                            {Array.from({ length: 6 }, (_, i) => i + 1).map((num) => (
                               <button
                                 key={num}
                                 onClick={() => handleImageUpload(num)}
@@ -390,9 +392,9 @@ export function TitleScreen() {
                         </div>
                       )}
 
-                      {/* 텍스트 모드 */}
-                      {customizeMode === 'text' && (
-                        <div>
+                      {/* 텍스트 모드 (D6가 아니면 항상 표시) */}
+                      {(previewDice?.type !== 'D6' || customizeMode === 'text') && (
+                        <div className={previewDice?.type !== 'D6' ? 'pt-4' : ''}>
                           <div className="flex items-center justify-between mb-3">
                             <label className="text-sm text-gray-600">
                               각 면에 텍스트 입력 ({faceCount}면)
@@ -434,9 +436,9 @@ export function TitleScreen() {
                         <div className="flex gap-2">
                           <button
                             onClick={handleSaveCustomization}
-                            disabled={!hasCustomization || customizeMode === 'image'}
+                            disabled={!hasCustomization || (previewDice?.type === 'D6' && customizeMode === 'image')}
                             className={`flex-1 px-3 py-2 text-sm font-medium border transition-colors ${
-                              hasCustomization && customizeMode !== 'image'
+                              hasCustomization && !(previewDice?.type === 'D6' && customizeMode === 'image')
                                 ? 'bg-white text-black border-black hover:bg-gray-100'
                                 : 'bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed'
                             }`}

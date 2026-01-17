@@ -14,10 +14,22 @@ interface DiceShowcaseProps {
 function DiceMesh({ customization }: { customization: DiceCustomization }) {
   const meshRef = useRef<THREE.Mesh>(null);
 
+  // 커스터마이징 키 생성 (실시간 업데이트용)
+  const customizationKey = useMemo(() => {
+    const imgEntries = Object.entries(customization.faceImages || {})
+      .map(([k, v]) => `${k}:${v?.length || 0}`)
+      .join(',');
+    const txtEntries = Object.entries(customization.faceTexts || {})
+      .map(([k, v]) => `${k}:${v}`)
+      .join(',');
+    return `${customization.type}-${imgEntries}-${txtEntries}`;
+  }, [customization.type, customization.faceImages, customization.faceTexts]);
+
   // 텍스처 생성
   const materials = useMemo(() => {
     return createDiceMaterials(customization);
-  }, [customization]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [customizationKey, customization]);
 
   // 자동 회전
   useFrame((state) => {
@@ -29,18 +41,18 @@ function DiceMesh({ customization }: { customization: DiceCustomization }) {
 
   const scale = 1.2;
 
-  // D6는 6개 면에 각각 다른 머티리얼 (이미지가 있을 때)
+  // D6는 6개 면에 각각 다른 머티리얼
   if (customization.type === 'D6' && Array.isArray(materials)) {
     return (
       <Float speed={2} rotationIntensity={0.5} floatIntensity={0.5}>
-        <mesh ref={meshRef} castShadow receiveShadow material={materials}>
+        <mesh key={customizationKey} ref={meshRef} castShadow receiveShadow material={materials}>
           <boxGeometry args={[scale, scale, scale]} />
         </mesh>
       </Float>
     );
   }
 
-  // 다른 다면체들 - flatShading으로 면 구분
+  // 다른 다면체들
   const renderGeometry = () => {
     switch (customization.type) {
       case 'D4':
@@ -69,6 +81,17 @@ function DiceMesh({ customization }: { customization: DiceCustomization }) {
 }
 
 export function DiceShowcaseScene({ customization }: DiceShowcaseProps) {
+  // DiceMesh 컴포넌트 재마운트를 위한 키 생성
+  const meshKey = useMemo(() => {
+    const imgEntries = Object.entries(customization.faceImages || {})
+      .map(([k, v]) => `${k}:${v?.length || 0}`)
+      .join(',');
+    const txtEntries = Object.entries(customization.faceTexts || {})
+      .map(([k, v]) => `${k}:${v}`)
+      .join(',');
+    return `${customization.type}-${imgEntries}-${txtEntries}`;
+  }, [customization.type, customization.faceImages, customization.faceTexts]);
+
   return (
     <>
       {/* 조명 */}
@@ -87,7 +110,7 @@ export function DiceShowcaseScene({ customization }: DiceShowcaseProps) {
       <Environment preset="apartment" />
 
       {/* 주사위 */}
-      <DiceMesh customization={customization} />
+      <DiceMesh key={meshKey} customization={customization} />
 
       {/* 카메라 컨트롤 */}
       <OrbitControls

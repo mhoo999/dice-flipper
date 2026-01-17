@@ -7,6 +7,7 @@ const DEFAULT_DICE_COLOR = '#f5f5f5';
 // D6 면 배치 (Three.js BoxGeometry 순서: +X, -X, +Y, -Y, +Z, -Z)
 const D6_FACE_VALUES = [3, 4, 1, 6, 2, 5];
 
+
 // 텍스트 텍스처 생성
 function createTextTexture(text: string): THREE.CanvasTexture {
   const size = 512;
@@ -130,11 +131,11 @@ export function createD6Materials(customization: DiceCustomization): THREE.MeshS
   });
 }
 
-// 메인 함수
+// 메인 함수 (D6만 지원)
 export function createDiceMaterials(
   customization: DiceCustomization
 ): THREE.MeshStandardMaterial[] | null {
-  // D6만 면별 텍스처 (이미지나 텍스트가 있을 때)
+  // D6만 면별 텍스처 지원
   if (customization.type === 'D6') {
     const hasImages = customization.faceImages && Object.keys(customization.faceImages).length > 0;
     const hasTexts = customization.faceTexts && Object.values(customization.faceTexts).some(t => t && t.trim() !== '');
@@ -143,6 +144,6 @@ export function createDiceMaterials(
       return createD6Materials(customization);
     }
   }
-  // 나머지는 null 반환 (Edges만 사용)
+
   return null;
 }
