@@ -35,6 +35,9 @@ export function FlipperScreen() {
   const [isChargingLocal, setIsChargingLocal] = useState(false);
   const chargeInterval = useRef<NodeJS.Timeout | null>(null);
 
+  // 결과 패널 펼치기/접기
+  const [isResultExpanded, setIsResultExpanded] = useState(false);
+
   // 차징 시작
   const startCharging = useCallback(() => {
     if (isRolling) return;
@@ -145,81 +148,99 @@ export function FlipperScreen() {
         <DiceScene />
 
         {/* 결과 표시 패널 */}
-        <div className="absolute top-2 sm:top-4 left-1/2 -translate-x-1/2 max-w-[95vw] overflow-x-auto">
-          <div className="flex items-center gap-2 sm:gap-4 bg-white border border-black px-3 sm:px-6 py-2 sm:py-4">
-            {/* 전체 온/오프 버튼 */}
-            <button
-              onClick={() => {
-                playClickSound(isMuted);
-                toggleAllDiceEnabled();
-              }}
-              className="px-2 sm:px-3 py-1 sm:py-2 text-xs sm:text-sm font-medium bg-white text-black border border-black hover:bg-gray-100 transition-colors whitespace-nowrap"
-              title="모든 주사위 활성화/비활성화"
-            >
-              전체 {diceInPlay.every((d) => d.enabled) ? 'OFF' : 'ON'}
-            </button>
-            <div className="w-px h-6 sm:h-8 bg-gray-300" />
-            {diceInPlay.map((dice) => {
-              const resultImage = dice.result && dice.customization.faceImages?.[dice.result];
-              const resultText = dice.result && dice.customization.faceTexts?.[dice.result];
-              const isDisabled = !dice.enabled || dice.locked;
-
-              const handleDiceClick = () => {
-                playClickSound(isMuted);
-                if (dice.result !== null) {
-                  toggleDiceLocked(dice.id);
-                } else {
-                  toggleDiceEnabled(dice.id);
-                }
-              };
-
-              return (
-                <div
-                  key={dice.id}
-                  className="flex flex-col items-center cursor-pointer"
-                  onClick={handleDiceClick}
-                >
-                  <div
-                    className={`w-10 h-10 sm:w-12 sm:h-12 flex items-center justify-center text-base sm:text-lg font-bold mb-1 border border-black overflow-hidden transition-opacity ${
-                      isDisabled ? 'opacity-30 bg-gray-100' : 'bg-gray-50'
-                    }`}
-                    style={
-                      !dice.isRolling && resultImage
-                        ? {
-                            backgroundImage: `url(${resultImage})`,
-                            backgroundSize: 'cover',
-                            backgroundPosition: 'center',
-                          }
-                        : {}
-                    }
-                  >
-                    {dice.isRolling ? (
-                      <span className="animate-spin">?</span>
-                    ) : resultImage ? null : (
-                      <span className={resultText && resultText.length > 2 ? 'text-xs' : ''}>
-                        {resultText || dice.result || '-'}
-                      </span>
-                    )}
-                  </div>
-                  <span className={`text-xs ${isDisabled ? 'text-gray-400' : 'text-gray-600'}`}>
-                    {dice.customization.type}
-                  </span>
-                </div>
-              );
-            })}
-
-            {numericDice.length > 1 && (
-              <>
-                <div className="w-px h-10 sm:h-12 bg-gray-300" />
+        <div className="absolute top-2 sm:top-4 left-2 right-2 sm:left-4 sm:right-4">
+          <div className="relative bg-white border border-black shadow-lg w-full">
+            {/* 주사위 그리드 */}
+            <div className={`overflow-hidden transition-all ${isResultExpanded ? 'max-h-[400px]' : 'max-h-[72px]'}`}>
+              <div className="grid grid-cols-5 sm:grid-cols-6 md:grid-cols-8 gap-2 p-3">
+                {/* 합계 박스 - 첫 번째 위치 */}
                 <div className="flex flex-col items-center">
-                  <div className="w-12 h-10 sm:w-14 sm:h-12 flex items-center justify-center text-lg sm:text-xl font-bold bg-black text-white">
-                    {isRolling ? '?' : totalResult || '-'}
+                  <div className="w-11 h-11 flex items-center justify-center text-base font-bold bg-black text-white">
+                    {isRolling ? '?' : (numericDice.length > 0 ? totalResult : '-')}
                   </div>
-                  <span className="text-xs text-gray-600">합계</span>
+                  <span className="text-[10px] text-gray-600">합계</span>
                 </div>
-              </>
-            )}
+
+                {/* 주사위들 */}
+                {diceInPlay.map((dice) => {
+                  const resultImage = dice.result && dice.customization.faceImages?.[dice.result];
+                  const resultText = dice.result && dice.customization.faceTexts?.[dice.result];
+                  const isDisabled = !dice.enabled || dice.locked;
+
+                  const handleDiceClick = () => {
+                    playClickSound(isMuted);
+                    if (dice.result !== null) {
+                      toggleDiceLocked(dice.id);
+                    } else {
+                      toggleDiceEnabled(dice.id);
+                    }
+                  };
+
+                  return (
+                    <div
+                      key={dice.id}
+                      className="flex flex-col items-center cursor-pointer"
+                      onClick={handleDiceClick}
+                    >
+                      <div
+                        className={`w-11 h-11 flex items-center justify-center text-sm font-bold border border-black overflow-hidden transition-opacity ${
+                          isDisabled ? 'opacity-30 bg-gray-100' : 'bg-gray-50'
+                        }`}
+                        style={
+                          !dice.isRolling && resultImage
+                            ? {
+                                backgroundImage: `url(${resultImage})`,
+                                backgroundSize: 'cover',
+                                backgroundPosition: 'center',
+                              }
+                            : {}
+                        }
+                      >
+                        {dice.isRolling ? (
+                          <span className="animate-spin">?</span>
+                        ) : resultImage ? null : (
+                          <span className={resultText && resultText.length > 2 ? 'text-[10px]' : ''}>
+                            {resultText || dice.result || '-'}
+                          </span>
+                        )}
+                      </div>
+                      <span className={`text-[10px] ${isDisabled ? 'text-gray-400' : 'text-gray-500'}`}>
+                        {dice.customization.type}
+                      </span>
+                    </div>
+                  );
+                })}
+
+              </div>
+            </div>
+
           </div>
+
+          {/* 펼침 토글 - 컨테이너 아래 우측 */}
+          {diceInPlay.length > 4 && (
+            <div className="flex justify-end mr-2 -mt-[1px]">
+              <button
+                onClick={() => setIsResultExpanded(!isResultExpanded)}
+                className="px-3 py-1 bg-white border border-t-0 border-black hover:bg-gray-50 transition-colors text-xs flex items-center gap-1 relative z-10"
+              >
+                <span>{isResultExpanded ? '접기' : '펼침'}</span>
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="12"
+                  height="12"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  className={`transition-transform ${isResultExpanded ? 'rotate-180' : ''}`}
+                >
+                  <polyline points="6 9 12 15 18 9" />
+                </svg>
+              </button>
+            </div>
+          )}
         </div>
 
         {/* 안내 텍스트 */}
@@ -230,15 +251,33 @@ export function FlipperScreen() {
           </div>
         )}
 
-        {/* FAB - 개발자 커피 한잔 사주기 */}
-        <a
-          href="https://hoons-service-archive.vercel.app/#coffee"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="absolute bottom-3 left-3 sm:bottom-4 sm:left-4 px-3 py-2 sm:px-4 sm:py-3 bg-white text-black font-medium border border-black hover:bg-gray-100 transition-colors text-xs sm:text-sm shadow-md"
-        >
-          개발자 커피 한잔 사주기
-        </a>
+        {/* 하단 FAB 영역 */}
+        <div className="absolute bottom-3 left-3 right-3 sm:bottom-4 sm:left-4 sm:right-4 flex justify-between items-end pointer-events-none">
+          {/* 왼쪽: 개발자 커피 */}
+          <a
+            href="https://hoons-service-archive.vercel.app/#coffee"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="pointer-events-auto px-3 py-2 sm:px-4 sm:py-3 bg-white text-black font-medium border border-black hover:bg-gray-100 transition-colors text-xs sm:text-sm shadow-md"
+          >
+            개발자 커피 한잔 사주기
+          </a>
+
+          {/* 오른쪽: 전체 활성화/비활성화 */}
+          <button
+            onClick={() => {
+              playClickSound(isMuted);
+              toggleAllDiceEnabled();
+            }}
+            className={`pointer-events-auto px-3 py-2 sm:px-4 sm:py-3 font-medium border border-black transition-colors text-xs sm:text-sm shadow-md ${
+              diceInPlay.every((d) => d.enabled)
+                ? 'bg-white text-black hover:bg-gray-100'
+                : 'bg-gray-300 text-gray-600 hover:bg-gray-200'
+            }`}
+          >
+            {diceInPlay.every((d) => d.enabled) ? '전체 비활성화' : '전체 활성화'}
+          </button>
+        </div>
       </main>
 
       {/* 하단 컨트롤 - 고정 */}
@@ -272,20 +311,6 @@ export function FlipperScreen() {
               {isRolling ? '굴리는 중...' : isChargingLocal ? `${power}%` : '꾹 눌러서 굴리기'}
             </span>
           </button>
-
-          {/* 결과 메시지 */}
-          {allDiceHaveResults && !isRolling && numericDice.length > 0 && (
-            <div className="text-center text-black animate-fade-in">
-              <p>
-                숫자 합계: <span className="text-xl sm:text-2xl font-bold">{totalResult}</span>
-                {numericDice.length > 1 && (
-                  <span className="text-xs sm:text-sm text-gray-500 ml-2">
-                    ({numericDice.map((d) => d.result).join(' + ')})
-                  </span>
-                )}
-              </p>
-            </div>
-          )}
         </div>
       </footer>
     </div>
