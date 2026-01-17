@@ -46,15 +46,15 @@ export function Dice3D({ dice }: Dice3DProps) {
       );
 
       const force = {
-        x: (Math.random() - 0.5) * 15,
-        y: -5,
-        z: (Math.random() - 0.5) * 15,
+        x: (Math.random() - 0.5) * 8,
+        y: -3,
+        z: (Math.random() - 0.5) * 8,
       };
 
       const torque = {
-        x: (Math.random() - 0.5) * 25,
-        y: (Math.random() - 0.5) * 25,
-        z: (Math.random() - 0.5) * 25,
+        x: (Math.random() - 0.5) * 20,
+        y: (Math.random() - 0.5) * 20,
+        z: (Math.random() - 0.5) * 20,
       };
 
       rb.setLinvel({ x: force.x, y: force.y, z: force.z }, true);

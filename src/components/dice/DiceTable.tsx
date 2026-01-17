@@ -11,8 +11,8 @@ export function DiceTable({
   size = 8,
   height = 0.2,
 }: DiceTableProps) {
-  const wallHeight = 1;
-  const wallThickness = 0.2;
+  const wallHeight = 3;
+  const wallThickness = 0.3;
 
   return (
     <group>
@@ -25,52 +25,36 @@ export function DiceTable({
         </mesh>
       </RigidBody>
 
-      {/* 벽 - 전면 */}
+      {/* 투명 벽 - 전면 */}
       <RigidBody type="fixed" friction={0.5} restitution={0.5}>
         <CuboidCollider
           args={[size / 2, wallHeight / 2, wallThickness / 2]}
           position={[0, wallHeight / 2, size / 2 + wallThickness / 2]}
         />
-        <mesh position={[0, wallHeight / 2, size / 2 + wallThickness / 2]} castShadow>
-          <boxGeometry args={[size, wallHeight, wallThickness]} />
-          <meshStandardMaterial color="#333333" roughness={0.9} />
-        </mesh>
       </RigidBody>
 
-      {/* 벽 - 후면 */}
+      {/* 투명 벽 - 후면 */}
       <RigidBody type="fixed" friction={0.5} restitution={0.5}>
         <CuboidCollider
           args={[size / 2, wallHeight / 2, wallThickness / 2]}
           position={[0, wallHeight / 2, -size / 2 - wallThickness / 2]}
         />
-        <mesh position={[0, wallHeight / 2, -size / 2 - wallThickness / 2]} castShadow>
-          <boxGeometry args={[size, wallHeight, wallThickness]} />
-          <meshStandardMaterial color="#333333" roughness={0.9} />
-        </mesh>
       </RigidBody>
 
-      {/* 벽 - 좌측 */}
+      {/* 투명 벽 - 좌측 */}
       <RigidBody type="fixed" friction={0.5} restitution={0.5}>
         <CuboidCollider
           args={[wallThickness / 2, wallHeight / 2, size / 2 + wallThickness]}
           position={[-size / 2 - wallThickness / 2, wallHeight / 2, 0]}
         />
-        <mesh position={[-size / 2 - wallThickness / 2, wallHeight / 2, 0]} castShadow>
-          <boxGeometry args={[wallThickness, wallHeight, size + wallThickness * 2]} />
-          <meshStandardMaterial color="#333333" roughness={0.9} />
-        </mesh>
       </RigidBody>
 
-      {/* 벽 - 우측 */}
+      {/* 투명 벽 - 우측 */}
       <RigidBody type="fixed" friction={0.5} restitution={0.5}>
         <CuboidCollider
           args={[wallThickness / 2, wallHeight / 2, size / 2 + wallThickness]}
           position={[size / 2 + wallThickness / 2, wallHeight / 2, 0]}
         />
-        <mesh position={[size / 2 + wallThickness / 2, wallHeight / 2, 0]} castShadow>
-          <boxGeometry args={[wallThickness, wallHeight, size + wallThickness * 2]} />
-          <meshStandardMaterial color="#333333" roughness={0.9} />
-        </mesh>
       </RigidBody>
 
       {/* 테이블 패드 (표면) */}

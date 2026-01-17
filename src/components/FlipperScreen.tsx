@@ -32,7 +32,14 @@ export function FlipperScreen() {
     initializePlay();
   }, [selectedDice, initializePlay, router]);
 
-  const totalResult = diceInPlay.reduce((sum, d) => sum + (d.result || 0), 0);
+  // 숫자 주사위만 합계 계산 (이미지/텍스트 커스텀이 없는 주사위)
+  const numericDice = diceInPlay.filter((d) => {
+    if (!d.result) return false;
+    const hasImage = d.customization.faceImages?.[d.result];
+    const hasText = d.customization.faceTexts?.[d.result];
+    return !hasImage && !hasText;
+  });
+  const totalResult = numericDice.reduce((sum, d) => sum + (d.result || 0), 0);
   const allDiceHaveResults = diceInPlay.length > 0 && diceInPlay.every((d) => d.result !== null);
 
   return (
@@ -60,20 +67,37 @@ export function FlipperScreen() {
       {/* 결과 표시 패널 */}
       <div className="absolute top-20 left-1/2 -translate-x-1/2">
         <div className="flex items-center gap-4 bg-white border border-black px-6 py-4">
-          {diceInPlay.map((dice) => (
-            <div key={dice.id} className="flex flex-col items-center">
-              <div className="w-12 h-12 flex items-center justify-center text-lg font-bold mb-1 bg-gray-50 border border-black">
-                {dice.isRolling ? (
-                  <span className="animate-spin">?</span>
-                ) : (
-                  dice.result || '-'
-                )}
+          {diceInPlay.map((dice) => {
+            const resultImage = dice.result && dice.customization.faceImages?.[dice.result];
+            const resultText = dice.result && dice.customization.faceTexts?.[dice.result];
+            return (
+              <div key={dice.id} className="flex flex-col items-center">
+                <div
+                  className="w-12 h-12 flex items-center justify-center text-lg font-bold mb-1 bg-gray-50 border border-black overflow-hidden"
+                  style={
+                    !dice.isRolling && resultImage
+                      ? {
+                          backgroundImage: `url(${resultImage})`,
+                          backgroundSize: 'cover',
+                          backgroundPosition: 'center',
+                        }
+                      : {}
+                  }
+                >
+                  {dice.isRolling ? (
+                    <span className="animate-spin">?</span>
+                  ) : resultImage ? null : (
+                    <span className={resultText && resultText.length > 2 ? 'text-xs' : ''}>
+                      {resultText || dice.result || '-'}
+                    </span>
+                  )}
+                </div>
+                <span className="text-xs text-gray-600">{dice.customization.type}</span>
               </div>
-              <span className="text-xs text-gray-600">{dice.customization.type}</span>
-            </div>
-          ))}
+            );
+          })}
 
-          {diceInPlay.length > 1 && (
+          {numericDice.length > 1 && (
             <>
               <div className="w-px h-12 bg-gray-300" />
               <div className="flex flex-col items-center">
@@ -104,15 +128,15 @@ export function FlipperScreen() {
           </button>
 
           {/* 결과 메시지 */}
-          {allDiceHaveResults && !isRolling && (
+          {allDiceHaveResults && !isRolling && numericDice.length > 0 && (
             <div className="text-center text-black animate-fade-in">
-              {diceInPlay.length === 1 ? (
+              {numericDice.length === 1 ? (
                 <p>결과: <span className="text-2xl font-bold">{totalResult}</span></p>
               ) : (
                 <p>
                   총합: <span className="text-2xl font-bold">{totalResult}</span>
                   <span className="text-sm text-gray-500 ml-2">
-                    ({diceInPlay.map((d) => d.result).join(' + ')})
+                    ({numericDice.map((d) => d.result).join(' + ')})
                   </span>
                 </p>
               )}

@@ -201,9 +201,9 @@ export const useDiceStore = create<DiceStore>()(
             isRolling: true,
             result: null,
             position: [
-              (Math.random() - 0.5) * 3,
-              4 + Math.random() * 2,
-              (Math.random() - 0.5) * 3,
+              (Math.random() - 0.5) * 2,
+              2 + Math.random() * 1,
+              (Math.random() - 0.5) * 2,
             ] as [number, number, number],
             rotation: [
               Math.random() * Math.PI * 2,
@@ -225,7 +225,7 @@ export const useDiceStore = create<DiceStore>()(
                   result: null,
                   position: [
                     (Math.random() - 0.5) * 2,
-                    4 + Math.random() * 2,
+                    2 + Math.random() * 1,
                     (Math.random() - 0.5) * 2,
                   ] as [number, number, number],
                   rotation: [
