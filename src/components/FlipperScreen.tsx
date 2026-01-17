@@ -290,57 +290,56 @@ export function FlipperScreen() {
 
           {/* 오른쪽: 코인 + 전체 활성화/비활성화 */}
           <div className="flex flex-col items-end gap-2 pointer-events-auto">
-            {/* 코인 플립 버튼 - 1달러 동전 */}
-            <button
-              onClick={flipCoin}
-              disabled={isFlipping}
-              className="w-14 h-14 sm:w-16 sm:h-16 rounded-full shadow-lg transition-all overflow-hidden"
-              style={{
-                background: 'linear-gradient(145deg, #d4af37, #c5a028, #b8962a, #d4af37)',
-                border: '3px solid #a08020',
-                boxShadow: 'inset 0 2px 4px rgba(255,255,255,0.3), inset 0 -2px 4px rgba(0,0,0,0.2), 0 4px 8px rgba(0,0,0,0.3)',
-              }}
-            >
-              <div
-                className="w-full h-full flex items-center justify-center rounded-full"
+            {/* 코인 + 결과 텍스트 */}
+            <div className="flex flex-col items-center gap-1">
+              {/* 코인 플립 버튼 - 1달러 동전 */}
+              <button
+                onClick={flipCoin}
+                disabled={isFlipping}
+                className="w-16 h-16 sm:w-20 sm:h-20 rounded-full shadow-lg transition-all overflow-hidden"
                 style={{
-                  animation: isFlipping ? 'coinFlip 0.6s ease-out' : 'none',
-                  border: '2px solid #b8962a',
+                  background: 'linear-gradient(145deg, #d4af37, #c5a028, #b8962a, #d4af37)',
+                  border: '3px solid #a08020',
+                  boxShadow: 'inset 0 2px 4px rgba(255,255,255,0.3), inset 0 -2px 4px rgba(0,0,0,0.2), 0 4px 8px rgba(0,0,0,0.3)',
                 }}
               >
-                {coinResult === 'heads' ? (
-                  // 앞면: 자유의 여신상 (미국 1달러)
-                  <div className="flex flex-col items-center justify-center">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#7c6315" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                      {/* 여신 얼굴 */}
-                      <circle cx="12" cy="10" r="5" />
-                      {/* 왕관 */}
-                      <path d="M7 6L9 3L12 5L15 3L17 6" />
-                      {/* 목/어깨 */}
-                      <path d="M9 15C9 15 9 18 12 18C15 18 15 15 15 15" />
-                      <path d="M8 18L6 21M16 18L18 21" />
-                    </svg>
-                  </div>
-                ) : (
-                  // 뒷면: 독수리 (미국 1달러)
-                  <div className="flex flex-col items-center justify-center">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#7c6315" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                      {/* 독수리 머리 */}
-                      <path d="M12 4C12 4 10 6 12 8C14 6 12 4 12 4Z" fill="#7c6315" />
-                      {/* 날개 */}
-                      <path d="M12 8L6 6L4 10L8 12L12 10" />
-                      <path d="M12 8L18 6L20 10L16 12L12 10" />
-                      {/* 몸통 */}
-                      <path d="M12 10V16" />
-                      {/* 꼬리 */}
-                      <path d="M10 16L12 20L14 16" />
-                      {/* 발 */}
-                      <path d="M10 14L8 16M14 14L16 16" />
-                    </svg>
-                  </div>
-                )}
-              </div>
-            </button>
+                <div
+                  className="w-full h-full flex items-center justify-center rounded-full"
+                  style={{
+                    animation: isFlipping ? 'coinFlip 0.6s ease-out' : 'none',
+                    border: '2px solid #b8962a',
+                  }}
+                >
+                  {coinResult === 'heads' ? (
+                    // 앞면: 자유의 여신상 (미국 1달러)
+                    <div className="flex flex-col items-center justify-center">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#7c6315" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                        <circle cx="12" cy="10" r="5" />
+                        <path d="M7 6L9 3L12 5L15 3L17 6" />
+                        <path d="M9 15C9 15 9 18 12 18C15 18 15 15 15 15" />
+                        <path d="M8 18L6 21M16 18L18 21" />
+                      </svg>
+                    </div>
+                  ) : (
+                    // 뒷면: 독수리 (미국 1달러)
+                    <div className="flex flex-col items-center justify-center">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#7c6315" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M12 4C12 4 10 6 12 8C14 6 12 4 12 4Z" fill="#7c6315" />
+                        <path d="M12 8L6 6L4 10L8 12L12 10" />
+                        <path d="M12 8L18 6L20 10L16 12L12 10" />
+                        <path d="M12 10V16" />
+                        <path d="M10 16L12 20L14 16" />
+                        <path d="M10 14L8 16M14 14L16 16" />
+                      </svg>
+                    </div>
+                  )}
+                </div>
+              </button>
+              {/* 코인 결과 텍스트 */}
+              <span className="text-xs font-bold text-gray-700 bg-white/80 px-2 py-0.5 rounded shadow-sm">
+                {isFlipping ? '...' : coinResult === 'heads' ? '앞면' : '뒷면'}
+              </span>
+            </div>
 
             {/* 전체 활성화/비활성화 */}
             <button
@@ -363,7 +362,7 @@ export function FlipperScreen() {
       {/* 하단 컨트롤 - 고정 */}
       <footer
         className="flex-shrink-0 p-4 sm:p-6 bg-white border-t border-black"
-        style={{ paddingBottom: 'max(1rem, env(safe-area-inset-bottom))' }}
+        style={{ paddingBottom: 'calc(1rem + env(safe-area-inset-bottom, 0px))' }}
       >
         <div className="max-w-md mx-auto space-y-3 sm:space-y-4">
           {/* 굴리기 버튼 (파워 게이지) */}

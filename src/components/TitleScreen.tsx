@@ -911,7 +911,7 @@ export function TitleScreen() {
       {/* 푸터 */}
       <footer
         className="border-t border-gray-300 px-6 py-8"
-        style={{ paddingBottom: 'max(2rem, env(safe-area-inset-bottom))' }}
+        style={{ paddingBottom: 'calc(2rem + env(safe-area-inset-bottom, 0px))' }}
       >
         <div className="max-w-6xl mx-auto flex flex-col items-center gap-4">
           <div className="flex gap-4">
