@@ -274,10 +274,12 @@ export function Dice3D({ dice }: Dice3DProps) {
     // 다면체 주사위는 매우 높은 damping과 마찰 적용 (빠르게 멈추도록)
     const isPolyhedral = ['D8', 'D10', 'D12', 'D20'].includes(customization.type);
     const isD4 = customization.type === 'D4';
+    const isD8OrD10 = customization.type === 'D8' || customization.type === 'D10';
     // D4는 조금 더 굴러가도록 damping과 friction을 약간 낮춤
+    // D8, D10은 D6만큼 튕겨지도록 restitution 높게 설정
     const linearDamping = isD4 ? 0.5 : (isPolyhedral ? 0.7 : 0.05);
     const angularDamping = isD4 ? 0.6 : (isPolyhedral ? 0.8 : 0.05);
-    const restitution = isD4 ? 0.35 : (isPolyhedral ? 0.25 : 0.7); // D4는 반발 약간 증가
+    const restitution = isD8OrD10 ? 0.7 : (isD4 ? 0.35 : (isPolyhedral ? 0.25 : 0.7)); // D8, D10은 D6와 동일한 반발
     const friction = isD4 ? 0.9 : (isPolyhedral ? 1.2 : 0.3); // D4는 마찰 약간 감소
 
     return (
@@ -333,10 +335,12 @@ export function Dice3D({ dice }: Dice3DProps) {
   // 다면체 주사위는 매우 높은 damping과 마찰 적용 (빠르게 멈추도록)
   const isPolyhedral = ['D8', 'D10', 'D12', 'D20'].includes(customization.type);
   const isD4 = customization.type === 'D4';
+  const isD8OrD10 = customization.type === 'D8' || customization.type === 'D10';
   // D4는 조금 더 굴러가도록 damping과 friction을 약간 낮춤
+  // D8, D10은 D6만큼 튕겨지도록 restitution 높게 설정
   const linearDamping = isD4 ? 0.5 : (isPolyhedral ? 0.7 : 0.05);
   const angularDamping = isD4 ? 0.6 : (isPolyhedral ? 0.8 : 0.05);
-  const restitution = isD4 ? 0.35 : (isPolyhedral ? 0.25 : 0.7); // D4는 반발 약간 증가
+  const restitution = isD8OrD10 ? 0.7 : (isD4 ? 0.35 : (isPolyhedral ? 0.25 : 0.7)); // D8, D10은 D6와 동일한 반발
   const friction = isD4 ? 0.9 : (isPolyhedral ? 1.2 : 0.3); // D4는 마찰 약간 감소
 
   return (
