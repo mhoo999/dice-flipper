@@ -154,13 +154,20 @@ export function Dice3D({ dice }: Dice3DProps) {
     const velocity = new THREE.Vector3(linvel.x, linvel.y, linvel.z);
     const angularVelocity = new THREE.Vector3(angvel.x, angvel.y, angvel.z);
 
+    // 다면체 주사위는 더 빠르게 멈춘 것으로 판단 (임계값 완화)
+    const isPolyhedral = ['D8', 'D10', 'D12', 'D20'].includes(customization.type);
+    const velocityThreshold = isPolyhedral ? 0.3 : 0.1;
+    const angularThreshold = isPolyhedral ? 0.3 : 0.1;
     const isSlowEnough =
-      velocity.length() < 0.1 && angularVelocity.length() < 0.1;
+      velocity.length() < velocityThreshold && angularVelocity.length() < angularThreshold;
 
     if (isSlowEnough) {
       stableFrames.current++;
 
-      if (stableFrames.current > 30) {
+      // 다면체 주사위는 더 빨리 멈춘 것으로 판단 (프레임 수 대폭 줄임)
+      const requiredStableFrames = isPolyhedral ? 8 : 30;
+
+      if (stableFrames.current > requiredStableFrames) {
         const quaternion = new THREE.Quaternion();
         const rot = rb.rotation();
         quaternion.set(rot.x, rot.y, rot.z, rot.w);
@@ -252,15 +259,22 @@ export function Dice3D({ dice }: Dice3DProps) {
       return <BallCollider args={[0.35]} />;
     };
 
+    // 6 이상의 다면체 주사위는 매우 높은 damping과 마찰 적용 (빠르게 멈추도록)
+    const isPolyhedral = ['D8', 'D10', 'D12', 'D20'].includes(customization.type);
+    const linearDamping = isPolyhedral ? 0.7 : 0.05;
+    const angularDamping = isPolyhedral ? 0.8 : 0.05;
+    const restitution = isPolyhedral ? 0.25 : 0.7; // 반발 더 감소
+    const friction = isPolyhedral ? 1.2 : 0.3; // 마찰 더 증가
+
     return (
       <RigidBody
         ref={rigidBodyRef}
         position={position}
         rotation={rotation}
-        restitution={0.7}
-        friction={0.3}
-        linearDamping={0.05}
-        angularDamping={0.05}
+        restitution={restitution}
+        friction={friction}
+        linearDamping={linearDamping}
+        angularDamping={angularDamping}
         colliders={false}
         onCollisionEnter={handleCollision}
         ccd={true}
@@ -298,15 +312,22 @@ export function Dice3D({ dice }: Dice3DProps) {
     return <BallCollider args={[0.35]} />;
   };
 
+  // 6 이상의 다면체 주사위는 매우 높은 damping과 마찰 적용 (빠르게 멈추도록)
+  const isPolyhedral = ['D8', 'D10', 'D12', 'D20'].includes(customization.type);
+  const linearDamping = isPolyhedral ? 0.7 : 0.05;
+  const angularDamping = isPolyhedral ? 0.8 : 0.05;
+  const restitution = isPolyhedral ? 0.25 : 0.7; // 반발 더 감소
+  const friction = isPolyhedral ? 1.2 : 0.3; // 마찰 더 증가
+
   return (
     <RigidBody
       ref={rigidBodyRef}
       position={position}
       rotation={rotation}
-      restitution={0.7}
-      friction={0.3}
-      linearDamping={0.05}
-      angularDamping={0.05}
+      restitution={restitution}
+      friction={friction}
+      linearDamping={linearDamping}
+      angularDamping={angularDamping}
       colliders={false}
       onCollisionEnter={handleCollision}
       ccd={true}

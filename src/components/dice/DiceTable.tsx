@@ -17,7 +17,7 @@ export function DiceTable({
   return (
     <group>
       {/* 테이블 바닥 */}
-      <RigidBody type="fixed" friction={0.2} restitution={0.6}>
+      <RigidBody type="fixed" friction={0.6} restitution={0.4}>
         <CuboidCollider args={[size / 2, height / 2, size / 2]} position={[0, -height / 2, 0]} />
         <mesh receiveShadow position={[0, -height / 2, 0]}>
           <boxGeometry args={[size, height, size]} />
