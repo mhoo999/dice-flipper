@@ -42,10 +42,8 @@ export default function SharePage() {
         loadDiceSetToTray(data.dice_data);
         setLoading(false);
 
-        // 자동으로 메인 페이지로 이동
-        setTimeout(() => {
-          router.push('/');
-        }, 1500);
+        // 메인 페이지로 이동 (쿼리 파라미터 없이)
+        router.replace('/');
       } catch (err) {
         console.error('Error fetching dice set:', err);
         setError('주사위 세트를 불러오는 중 오류가 발생했습니다.');

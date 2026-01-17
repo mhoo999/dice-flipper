@@ -2,7 +2,7 @@
 
 import { Suspense, useEffect, useState, useRef } from 'react';
 import { Canvas } from '@react-three/fiber';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import dynamic from 'next/dynamic';
 import * as XLSX from 'xlsx';
 import { useDiceStore } from '@/store/diceStore';
@@ -18,6 +18,7 @@ const DICE_TYPES: DiceType[] = ['D6', 'D8', 'D10'];
 
 export function TitleScreen() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [isCustomizeOpen, setIsCustomizeOpen] = useState(false);
   const [customizeTab, setCustomizeTab] = useState<'image' | 'text' | 'color'>('image');
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -25,6 +26,7 @@ export function TitleScreen() {
   const previewDice = useDiceStore((state) => state.previewDice);
   const selectedDice = useDiceStore((state) => state.selectedDice);
   const setPreviewDice = useDiceStore((state) => state.setPreviewDice);
+  const setPreviewDiceFromCustomization = useDiceStore((state) => state.setPreviewDiceFromCustomization);
   const addToTray = useDiceStore((state) => state.addToTray);
   const removeFromTray = useDiceStore((state) => state.removeFromTray);
   const clearTray = useDiceStore((state) => state.clearTray);
@@ -43,6 +45,46 @@ export function TitleScreen() {
   const [shareUrl, setShareUrl] = useState<string | null>(null);
   const [saveName, setSaveName] = useState('');
   const [shareId, setShareId] = useState<string | null>(null);
+  const [savedSetName, setSavedSetName] = useState<string | null>(null);
+  const [isLoadingShare, setIsLoadingShare] = useState(false);
+
+  // URL 쿼리 파라미터에서 주사위 세트 불러오기
+  useEffect(() => {
+    const shareId = searchParams.get('share');
+    if (shareId && !isLoadingShare) {
+      const loadFromShare = async () => {
+        setIsLoadingShare(true);
+        try {
+          const { data, error } = await loadDiceSet(shareId);
+          
+          if (error) {
+            console.error('Error loading dice set from share:', error);
+            alert('주사위 세트를 불러올 수 없습니다.');
+            // URL에서 쿼리 파라미터 제거
+            router.replace('/');
+            return;
+          }
+
+          if (data) {
+            loadDiceSetToTray(data.dice_data);
+            setSavedSetName(data.name);
+            setShareId(shareId);
+            setShareUrl(`${window.location.origin}/?share=${shareId}`);
+            // URL에서 쿼리 파라미터 제거 (히스토리 정리)
+            router.replace('/');
+          }
+        } catch (err: any) {
+          console.error('Error loading dice set from share:', err);
+          alert('주사위 세트를 불러오는 중 오류가 발생했습니다.');
+          router.replace('/');
+        } finally {
+          setIsLoadingShare(false);
+        }
+      };
+
+      loadFromShare();
+    }
+  }, [searchParams, loadDiceSetToTray, router, isLoadingShare]);
 
   // 초기 주사위 설정
   useEffect(() => {
@@ -75,9 +117,11 @@ export function TitleScreen() {
       }
 
       if (data) {
-        const url = `${window.location.origin}/share/${data.id}`;
+        // 메인 페이지 쿼리 파라미터 형식으로 공유 링크 생성
+        const url = `${window.location.origin}/?share=${data.id}`;
         setShareUrl(url);
         setShareId(data.id);
+        setSavedSetName(data.name);
         setSaveName('');
         alert('주사위 세트가 저장되었습니다!');
       }
@@ -697,13 +741,34 @@ export function TitleScreen() {
                   </h2>
                   {selectedDice.length > 0 && (
                     <button
-                      onClick={clearTray}
+                      onClick={() => {
+                        clearTray();
+                        setSavedSetName(null);
+                        setShareUrl(null);
+                        setShareId(null);
+                      }}
                       className="text-sm text-gray-600 hover:text-black underline"
                     >
                       전체 삭제
                     </button>
                   )}
                 </div>
+
+                {/* 저장된 세트 이름 표시 */}
+                {savedSetName && shareUrl && (
+                  <div className="mb-4 pb-3 border-b border-gray-200">
+                    <p className="text-xs text-gray-500 mb-1">저장된 세트:</p>
+                    <button
+                      onClick={() => {
+                        navigator.clipboard.writeText(shareUrl);
+                        alert('공유 링크가 클립보드에 복사되었습니다!');
+                      }}
+                      className="text-sm font-medium text-blue-600 hover:text-blue-800 hover:underline cursor-pointer"
+                    >
+                      {savedSetName}
+                    </button>
+                  </div>
+                )}
 
                 {selectedDice.length === 0 ? (
                   <p className="text-gray-500 text-center py-8">
@@ -719,17 +784,27 @@ export function TitleScreen() {
                           key={dice.id}
                           className="relative group"
                         >
-                          <div className="aspect-square flex items-center justify-center text-lg font-bold bg-gray-50 border border-black">
+                          <button
+                            onClick={() => {
+                              // 주사위 클릭 시 프리뷰로 로드
+                              setPreviewDiceFromCustomization(dice.customization);
+                              setIsCustomizeOpen(true);
+                            }}
+                            className="w-full aspect-square flex items-center justify-center text-lg font-bold bg-gray-50 border border-black hover:bg-gray-100 transition-colors cursor-pointer"
+                          >
                             {dice.customization.type}
                             {(hasImg || hasTxt) && (
                               <span className="absolute bottom-1 right-1 text-xs bg-black text-white px-1">
                                 {hasImg ? 'IMG' : 'TXT'}
                               </span>
                             )}
-                          </div>
+                          </button>
                           <button
-                            onClick={() => removeFromTray(dice.id)}
-                            className="absolute -top-2 -right-2 w-6 h-6 bg-black text-white text-xs opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              removeFromTray(dice.id);
+                            }}
+                            className="absolute -top-2 -right-2 w-6 h-6 bg-black text-white text-xs opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center z-10"
                           >
                             x
                           </button>

@@ -44,6 +44,7 @@ interface DiceStore {
 
   // 타이틀 화면 액션
   setPreviewDice: (type: DiceType) => void;
+  setPreviewDiceFromCustomization: (customization: DiceCustomization) => void; // 커스터마이징으로 프리뷰 설정
   setFaceImage: (faceNumber: number, imageUrl: string) => void;
   clearFaceImages: () => void;
   setFaceText: (faceNumber: number, text: string) => void;
@@ -107,6 +108,11 @@ export const useDiceStore = create<DiceStore>()(
       // 프리뷰 주사위 설정
       setPreviewDice: (type) => {
         set({ previewDice: createDefaultCustomization(type) });
+      },
+
+      // 커스터마이징으로 프리뷰 주사위 설정
+      setPreviewDiceFromCustomization: (customization) => {
+        set({ previewDice: customization });
       },
 
       // 면에 이미지 설정
