@@ -25,15 +25,17 @@ export function FlipperScreen() {
   const rollAllDice = useDiceStore((state) => state.rollAllDice);
   const isMuted = useDiceStore((state) => state.isMuted);
   const toggleMute = useDiceStore((state) => state.toggleMute);
+  const setIsCharging = useDiceStore((state) => state.setIsCharging);
 
   // 파워 게이지 상태
   const [power, setPower] = useState(0);
-  const [isCharging, setIsCharging] = useState(false);
+  const [isChargingLocal, setIsChargingLocal] = useState(false);
   const chargeInterval = useRef<NodeJS.Timeout | null>(null);
 
   // 차징 시작
   const startCharging = useCallback(() => {
     if (isRolling) return;
+    setIsChargingLocal(true);
     setIsCharging(true);
     setPower(0);
 
@@ -43,11 +45,12 @@ export function FlipperScreen() {
         return prev + 2; // 50프레임 = 약 1.6초에 100%
       });
     }, 32);
-  }, [isRolling]);
+  }, [isRolling, setIsCharging]);
 
   // 차징 종료 및 던지기
   const stopChargingAndRoll = useCallback(() => {
-    if (!isCharging) return;
+    if (!isChargingLocal) return;
+    setIsChargingLocal(false);
     setIsCharging(false);
 
     if (chargeInterval.current) {
@@ -60,7 +63,7 @@ export function FlipperScreen() {
     playThrowSound(isMuted);
     rollAllDice(finalPower);
     setPower(0);
-  }, [isCharging, power, rollAllDice, isMuted]);
+  }, [isChargingLocal, power, rollAllDice, isMuted, setIsCharging]);
 
   // 컴포넌트 언마운트 시 인터벌 정리
   useEffect(() => {
@@ -198,7 +201,7 @@ export function FlipperScreen() {
             }`}
           >
             {/* 파워 게이지 (가운데서 양쪽으로 채워짐) */}
-            {isCharging && (
+            {isChargingLocal && (
               <div
                 className="absolute inset-0 bg-white/30 transition-all"
                 style={{
@@ -208,7 +211,7 @@ export function FlipperScreen() {
               />
             )}
             <span className="relative z-10">
-              {isRolling ? '굴리는 중...' : isCharging ? `${power}%` : '꾹 눌러서 굴리기'}
+              {isRolling ? '굴리는 중...' : isChargingLocal ? `${power}%` : '꾹 눌러서 굴리기'}
             </span>
           </button>
 

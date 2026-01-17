@@ -33,6 +33,8 @@ interface DiceStore {
 
   // UI 상태
   isRolling: boolean;
+  isCharging: boolean;
+  setIsCharging: (charging: boolean) => void;
 
   // 사운드 설정
   isMuted: boolean;
@@ -80,8 +82,13 @@ export const useDiceStore = create<DiceStore>()(
       diceInPlay: [],
       rollHistory: [],
       isRolling: false,
+      isCharging: false,
       rollPower: 0,
       isMuted: false,
+
+      setIsCharging: (charging) => {
+        set({ isCharging: charging });
+      },
 
       toggleMute: () => {
         set((state) => ({ isMuted: !state.isMuted }));

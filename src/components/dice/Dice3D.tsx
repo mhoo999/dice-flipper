@@ -23,13 +23,27 @@ export function Dice3D({ dice }: Dice3DProps) {
   const setDiceResult = useDiceStore((state) => state.setDiceResult);
   const rollPower = useDiceStore((state) => state.rollPower);
   const isMuted = useDiceStore((state) => state.isMuted);
+  const isCharging = useDiceStore((state) => state.isCharging);
+  const diceInPlayCount = useDiceStore((state) => state.diceInPlay.length);
 
   const { customization, position, rotation, isRolling } = dice;
+  const shakeStartTime = useRef<number>(0);
+  const diceIndex = useRef<number>(0);
+  const lastShakeSound = useRef<number>(0);
 
   // 텍스처/머티리얼 생성
   const materials = useMemo(() => {
     return createDiceMaterials(customization);
   }, [customization]);
+
+  // 차징 시작 시 주사위를 모아서 흔들기 시작
+  useEffect(() => {
+    if (isCharging && rigidBodyRef.current) {
+      shakeStartTime.current = Date.now();
+      // 주사위 인덱스 계산 (간단히 id 해시)
+      diceIndex.current = dice.id.charCodeAt(0) % 10;
+    }
+  }, [isCharging, dice.id]);
 
   // 주사위 굴리기 시작
   useEffect(() => {
@@ -81,11 +95,59 @@ export function Dice3D({ dice }: Dice3DProps) {
     }
   }, [isRolling, position, rotation, rollPower]);
 
-  // 매 프레임 안정성 체크
+  // 매 프레임 처리
   useFrame(() => {
-    if (!rigidBodyRef.current || isStable || !dice.isRolling) return;
+    if (!rigidBodyRef.current) return;
 
     const rb = rigidBodyRef.current;
+
+    // 차징 중일 때 흔들기
+    if (isCharging && !dice.isRolling) {
+      const now = Date.now();
+      const time = now * 0.01;
+      const idx = diceIndex.current;
+
+      // 중앙 근처에 모여서 흔들림
+      const baseX = (idx % 3 - 1) * 0.4;
+      const baseZ = 2.5;
+      const baseY = 1.2;
+
+      // 랜덤한 흔들림
+      const shakeX = Math.sin(time * 15 + idx * 2) * 0.15;
+      const shakeY = Math.cos(time * 18 + idx * 3) * 0.1;
+      const shakeZ = Math.sin(time * 12 + idx * 5) * 0.15;
+
+      rb.setTranslation(
+        { x: baseX + shakeX, y: baseY + shakeY, z: baseZ + shakeZ },
+        true
+      );
+
+      // 회전도 흔들림
+      const rotX = Math.sin(time * 20 + idx) * 0.3;
+      const rotY = Math.cos(time * 25 + idx * 2) * 0.3;
+      const rotZ = Math.sin(time * 22 + idx * 3) * 0.3;
+
+      rb.setRotation(
+        new THREE.Quaternion().setFromEuler(new THREE.Euler(rotX, rotY, rotZ)),
+        true
+      );
+
+      // 속도 초기화 (물리 시뮬레이션 방지)
+      rb.setLinvel({ x: 0, y: 0, z: 0 }, true);
+      rb.setAngvel({ x: 0, y: 0, z: 0 }, true);
+
+      // 흔들리는 동안 간헐적으로 부딪히는 소리 (첫 번째 주사위만)
+      if (idx === 0 && now - lastShakeSound.current > 80 + Math.random() * 100) {
+        playBounceSound(isMuted, 0.3 + Math.random() * 0.3);
+        lastShakeSound.current = now;
+      }
+
+      return;
+    }
+
+    // 안정성 체크 (굴리는 중일 때만)
+    if (isStable || !dice.isRolling) return;
+
     const linvel = rb.linvel();
     const angvel = rb.angvel();
 
