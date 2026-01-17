@@ -197,7 +197,7 @@ export function Dice3D({ dice }: Dice3DProps) {
     }
   };
 
-  // D6는 면별 텍스처 적용 (이미지가 있을 때)
+  // D6는 면별 텍스처 적용 (눈 패턴 또는 커스텀 이미지/텍스트)
   if (customization.type === 'D6' && Array.isArray(materials)) {
     return (
       <RigidBody

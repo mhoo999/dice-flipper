@@ -42,20 +42,86 @@ function createTextTexture(text: string): THREE.CanvasTexture {
   return texture;
 }
 
-// 빈 면 텍스처 생성 (보더 없이 단색)
-function createEmptyFaceTexture(): THREE.CanvasTexture {
+// 주사위 눈 텍스처 생성
+function createDiceDotTexture(value: number): THREE.CanvasTexture {
   const size = 512;
   const canvas = document.createElement('canvas');
   canvas.width = size;
   canvas.height = size;
   const ctx = canvas.getContext('2d')!;
 
+  // 배경색
   ctx.fillStyle = DEFAULT_DICE_COLOR;
   ctx.fillRect(0, 0, size, size);
+
+  // 눈 색상
+  ctx.fillStyle = '#1a1a1a';
+  
+  // 눈 반지름과 간격
+  const dotRadius = 35;
+  const margin = 10;
+  const spacing = (size - margin * 2) / 3;
+
+  // 각 면에 맞는 눈 패턴 그리기
+  switch (value) {
+    case 1:
+      // 중앙 1개
+      drawDot(ctx, size / 2, size / 2, dotRadius);
+      break;
+    
+    case 2:
+      // 대각선 2개
+      drawDot(ctx, margin + spacing, margin + spacing, dotRadius);
+      drawDot(ctx, size - margin - spacing, size - margin - spacing, dotRadius);
+      break;
+    
+    case 3:
+      // 대각선 3개
+      drawDot(ctx, margin + spacing, margin + spacing, dotRadius);
+      drawDot(ctx, size / 2, size / 2, dotRadius);
+      drawDot(ctx, size - margin - spacing, size - margin - spacing, dotRadius);
+      break;
+    
+    case 4:
+      // 네 모서리 4개
+      drawDot(ctx, margin + spacing, margin + spacing, dotRadius);
+      drawDot(ctx, size - margin - spacing, margin + spacing, dotRadius);
+      drawDot(ctx, margin + spacing, size - margin - spacing, dotRadius);
+      drawDot(ctx, size - margin - spacing, size - margin - spacing, dotRadius);
+      break;
+    
+    case 5:
+      // 네 모서리 4개 + 중앙 1개
+      drawDot(ctx, margin + spacing, margin + spacing, dotRadius);
+      drawDot(ctx, size - margin - spacing, margin + spacing, dotRadius);
+      drawDot(ctx, size / 2, size / 2, dotRadius);
+      drawDot(ctx, margin + spacing, size - margin - spacing, dotRadius);
+      drawDot(ctx, size - margin - spacing, size - margin - spacing, dotRadius);
+      break;
+    
+    case 6:
+      // 좌우 3개씩 2줄
+      // 왼쪽 열
+      drawDot(ctx, margin + spacing, margin + spacing, dotRadius);
+      drawDot(ctx, margin + spacing, size / 2, dotRadius);
+      drawDot(ctx, margin + spacing, size - margin - spacing, dotRadius);
+      // 오른쪽 열
+      drawDot(ctx, size - margin - spacing, margin + spacing, dotRadius);
+      drawDot(ctx, size - margin - spacing, size / 2, dotRadius);
+      drawDot(ctx, size - margin - spacing, size - margin - spacing, dotRadius);
+      break;
+  }
 
   const texture = new THREE.CanvasTexture(canvas);
   texture.needsUpdate = true;
   return texture;
+}
+
+// 원형 눈 그리기 헬퍼 함수
+function drawDot(ctx: CanvasRenderingContext2D, x: number, y: number, radius: number) {
+  ctx.beginPath();
+  ctx.arc(x, y, radius, 0, Math.PI * 2);
+  ctx.fill();
 }
 
 // 커스텀 이미지가 있는 면 텍스처 생성 (보더 없이)
@@ -118,8 +184,8 @@ export function createD6Materials(customization: DiceCustomization): THREE.MeshS
       // 커스텀 텍스트가 있으면 텍스트 텍스처
       texture = createTextTexture(faceText);
     } else {
-      // 기본값: 빈 텍스처
-      texture = createEmptyFaceTexture();
+      // 기본값: 주사위 눈 텍스처
+      texture = createDiceDotTexture(value);
     }
 
     return new THREE.MeshStandardMaterial({
@@ -135,14 +201,9 @@ export function createD6Materials(customization: DiceCustomization): THREE.MeshS
 export function createDiceMaterials(
   customization: DiceCustomization
 ): THREE.MeshStandardMaterial[] | null {
-  // D6만 면별 텍스처 지원
+  // D6는 항상 면별 텍스처 지원 (눈 패턴 포함)
   if (customization.type === 'D6') {
-    const hasImages = customization.faceImages && Object.keys(customization.faceImages).length > 0;
-    const hasTexts = customization.faceTexts && Object.values(customization.faceTexts).some(t => t && t.trim() !== '');
-
-    if (hasImages || hasTexts) {
-      return createD6Materials(customization);
-    }
+    return createD6Materials(customization);
   }
 
   return null;
