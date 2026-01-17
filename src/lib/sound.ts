@@ -2,6 +2,13 @@
 
 let audioContext: AudioContext | null = null;
 
+// 진동 함수 (모바일)
+export function vibrate(duration: number = 50) {
+  if (typeof navigator !== 'undefined' && navigator.vibrate) {
+    navigator.vibrate(duration);
+  }
+}
+
 function getAudioContext(): AudioContext {
   if (!audioContext) {
     audioContext = new AudioContext();

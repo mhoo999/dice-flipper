@@ -5,6 +5,7 @@ import { Canvas } from '@react-three/fiber';
 import { OrbitControls, Environment, ContactShadows } from '@react-three/drei';
 import { Physics } from '@react-three/rapier';
 import { Dice3D } from './Dice3D';
+import { Coin3D } from './Coin3D';
 import { DiceTable } from './DiceTable';
 import { useDiceStore } from '@/store/diceStore';
 
@@ -40,6 +41,9 @@ function Scene() {
         {diceInPlay.filter((dice) => dice.enabled && !dice.locked).map((dice) => (
           <Dice3D key={dice.id} dice={dice} />
         ))}
+
+        {/* 코인 */}
+        <Coin3D />
       </Physics>
 
       {/* 그림자 */}

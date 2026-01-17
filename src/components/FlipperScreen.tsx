@@ -4,7 +4,7 @@ import { useEffect, useState, useRef, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import dynamic from 'next/dynamic';
 import { useDiceStore } from '@/store/diceStore';
-import { playThrowSound, playClickSound, playCoinSound } from '@/lib/sound';
+import { playThrowSound, playClickSound } from '@/lib/sound';
 
 const DiceScene = dynamic(() => import('./dice/DiceScene'), {
   ssr: false,
@@ -29,6 +29,8 @@ export function FlipperScreen() {
   const toggleDiceEnabled = useDiceStore((state) => state.toggleDiceEnabled);
   const toggleDiceLocked = useDiceStore((state) => state.toggleDiceLocked);
   const toggleAllDiceEnabled = useDiceStore((state) => state.toggleAllDiceEnabled);
+  const coin = useDiceStore((state) => state.coin);
+  const flipCoin = useDiceStore((state) => state.flipCoin);
 
   // 파워 게이지 상태
   const [power, setPower] = useState(0);
@@ -37,10 +39,6 @@ export function FlipperScreen() {
 
   // 결과 패널 펼치기/접기
   const [isResultExpanded, setIsResultExpanded] = useState(false);
-
-  // 코인 플립 상태
-  const [isFlipping, setIsFlipping] = useState(false);
-  const [coinResult, setCoinResult] = useState<'heads' | 'tails'>('heads');
 
   // 차징 시작
   const startCharging = useCallback(() => {
@@ -106,23 +104,11 @@ export function FlipperScreen() {
   // 활성화된 주사위가 있는지 확인
   const hasEnabledDice = diceInPlay.some((d) => d.enabled && !d.locked);
 
-  // 코인 플립 함수
-  const flipCoin = useCallback(() => {
-    if (isFlipping) return;
-
-    playCoinSound(isMuted);
-    setIsFlipping(true);
-
-    // 애니메이션 후 결과 표시
-    setTimeout(() => {
-      const result = Math.random() < 0.5 ? 'heads' : 'tails';
-      setCoinResult(result);
-      setIsFlipping(false);
-    }, 600);
-  }, [isFlipping, isMuted]);
-
   return (
-    <div className="flex flex-col w-screen h-screen overflow-hidden bg-gray-50">
+    <div
+      className="flex flex-col w-screen overflow-hidden bg-gray-50"
+      style={{ height: 'calc(100dvh - env(safe-area-inset-bottom, 0px))' }}
+    >
       {/* 상단 헤더 - 고정 */}
       <header
         className="flex-shrink-0 p-3 sm:p-4 bg-white border-b border-black"
@@ -288,56 +274,23 @@ export function FlipperScreen() {
             개발자 커피 한잔 사주기
           </a>
 
-          {/* 오른쪽: 코인 + 전체 활성화/비활성화 */}
+          {/* 오른쪽: 코인 토스 + 전체 활성화/비활성화 */}
           <div className="flex flex-col items-end gap-2 pointer-events-auto">
-            {/* 코인 + 결과 텍스트 */}
+            {/* 코인 토스 버튼 + 결과 텍스트 */}
             <div className="flex flex-col items-center gap-1">
-              {/* 코인 플립 버튼 - 1달러 동전 */}
               <button
                 onClick={flipCoin}
-                disabled={isFlipping}
-                className="w-16 h-16 sm:w-20 sm:h-20 rounded-full shadow-lg transition-all overflow-hidden"
+                disabled={coin.isFlipping}
+                className="px-4 py-2 bg-gradient-to-b from-yellow-400 to-yellow-600 text-yellow-900 font-bold text-sm border-2 border-yellow-700 rounded-lg shadow-lg hover:from-yellow-300 hover:to-yellow-500 transition-all disabled:opacity-50"
                 style={{
-                  background: 'linear-gradient(145deg, #d4af37, #c5a028, #b8962a, #d4af37)',
-                  border: '3px solid #a08020',
-                  boxShadow: 'inset 0 2px 4px rgba(255,255,255,0.3), inset 0 -2px 4px rgba(0,0,0,0.2), 0 4px 8px rgba(0,0,0,0.3)',
+                  boxShadow: '0 4px 8px rgba(0,0,0,0.3), inset 0 1px 2px rgba(255,255,255,0.3)',
                 }}
               >
-                <div
-                  className="w-full h-full flex items-center justify-center rounded-full"
-                  style={{
-                    animation: isFlipping ? 'coinFlip 0.6s ease-out' : 'none',
-                    border: '2px solid #b8962a',
-                  }}
-                >
-                  {coinResult === 'heads' ? (
-                    // 앞면: 자유의 여신상 (미국 1달러)
-                    <div className="flex flex-col items-center justify-center">
-                      <svg xmlns="http://www.w3.org/2000/svg" width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#7c6315" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                        <circle cx="12" cy="10" r="5" />
-                        <path d="M7 6L9 3L12 5L15 3L17 6" />
-                        <path d="M9 15C9 15 9 18 12 18C15 18 15 15 15 15" />
-                        <path d="M8 18L6 21M16 18L18 21" />
-                      </svg>
-                    </div>
-                  ) : (
-                    // 뒷면: 독수리 (미국 1달러)
-                    <div className="flex flex-col items-center justify-center">
-                      <svg xmlns="http://www.w3.org/2000/svg" width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#7c6315" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                        <path d="M12 4C12 4 10 6 12 8C14 6 12 4 12 4Z" fill="#7c6315" />
-                        <path d="M12 8L6 6L4 10L8 12L12 10" />
-                        <path d="M12 8L18 6L20 10L16 12L12 10" />
-                        <path d="M12 10V16" />
-                        <path d="M10 16L12 20L14 16" />
-                        <path d="M10 14L8 16M14 14L16 16" />
-                      </svg>
-                    </div>
-                  )}
-                </div>
+                {coin.isFlipping ? '던지는 중...' : '코인 토스'}
               </button>
               {/* 코인 결과 텍스트 */}
               <span className="text-xs font-bold text-gray-700 bg-white/80 px-2 py-0.5 rounded shadow-sm">
-                {isFlipping ? '...' : coinResult === 'heads' ? '앞면' : '뒷면'}
+                {coin.isFlipping ? '...' : coin.result === 'heads' ? '앞면' : coin.result === 'tails' ? '뒷면' : '-'}
               </span>
             </div>
 
@@ -362,7 +315,7 @@ export function FlipperScreen() {
       {/* 하단 컨트롤 - 고정 */}
       <footer
         className="flex-shrink-0 p-4 sm:p-6 bg-white border-t border-black"
-        style={{ paddingBottom: 'calc(1rem + env(safe-area-inset-bottom, 0px))' }}
+        style={{ paddingBottom: 'calc(1.5rem + env(safe-area-inset-bottom, 0px))' }}
       >
         <div className="max-w-md mx-auto space-y-3 sm:space-y-4">
           {/* 굴리기 버튼 (파워 게이지) */}
@@ -373,7 +326,7 @@ export function FlipperScreen() {
             onTouchStart={startCharging}
             onTouchEnd={stopChargingAndRoll}
             disabled={isRolling || !hasEnabledDice}
-            className={`relative w-full py-4 sm:py-5 font-bold text-xl sm:text-2xl border overflow-hidden transition-colors ${
+            className={`relative w-full py-4 sm:py-5 font-bold text-xl sm:text-2xl border overflow-hidden transition-colors select-none ${
               isRolling || !hasEnabledDice
                 ? 'bg-gray-200 text-gray-400 border-gray-300 cursor-not-allowed'
                 : 'bg-black text-white border-black'

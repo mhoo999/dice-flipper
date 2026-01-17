@@ -20,6 +20,14 @@ export interface DiceInPlay {
   locked: boolean; // 잠금 상태 (결과가 나오면 자동 잠김)
 }
 
+// 코인 상태
+export interface CoinState {
+  isFlipping: boolean;
+  result: 'heads' | 'tails' | null;
+  position: [number, number, number];
+  rotation: [number, number, number];
+}
+
 interface DiceStore {
   // 현재 프리뷰 중인 주사위 (타이틀 화면)
   previewDice: DiceCustomization | null;
@@ -29,6 +37,9 @@ interface DiceStore {
 
   // 플레이 중인 주사위들 (플리퍼 화면)
   diceInPlay: DiceInPlay[];
+
+  // 코인 상태
+  coin: CoinState;
 
   // 굴리기 기록
   rollHistory: RollResult[];
@@ -68,6 +79,10 @@ interface DiceStore {
   toggleDiceLocked: (id: string) => void; // locked 토글
   toggleAllDiceEnabled: () => void; // 전체 활성화/비활성화 토글
   clearHistory: () => void;
+
+  // 코인 액션
+  flipCoin: () => void;
+  setCoinResult: (result: 'heads' | 'tails') => void;
 }
 
 const generateId = () => Math.random().toString(36).substring(2, 9);
@@ -91,6 +106,12 @@ export const useDiceStore = create<DiceStore>()(
       previewDice: null,
       selectedDice: [],
       diceInPlay: [],
+      coin: {
+        isFlipping: false,
+        result: null,
+        position: [2.5, 0.5, 0] as [number, number, number],
+        rotation: [0, 0, 0] as [number, number, number],
+      },
       rollHistory: [],
       isRolling: false,
       isCharging: false,
@@ -408,6 +429,34 @@ export const useDiceStore = create<DiceStore>()(
       // 히스토리 지우기
       clearHistory: () => {
         set({ rollHistory: [] });
+      },
+
+      // 코인 플립
+      flipCoin: () => {
+        set((state) => ({
+          coin: {
+            ...state.coin,
+            isFlipping: true,
+            result: null,
+            position: [2.5, 2, 0] as [number, number, number],
+            rotation: [
+              Math.random() * Math.PI * 2,
+              Math.random() * Math.PI * 2,
+              Math.random() * Math.PI * 2,
+            ] as [number, number, number],
+          },
+        }));
+      },
+
+      // 코인 결과 설정
+      setCoinResult: (result) => {
+        set((state) => ({
+          coin: {
+            ...state.coin,
+            isFlipping: false,
+            result,
+          },
+        }));
       },
     }),
     {

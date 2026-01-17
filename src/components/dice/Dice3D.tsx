@@ -8,7 +8,7 @@ import { DICE_CONFIGS } from '@/types/dice';
 import { calculateDiceResult } from '@/lib/diceGeometry';
 import { createDiceMaterials } from '@/lib/diceTexture';
 import { useDiceStore, DiceInPlay } from '@/store/diceStore';
-import { playResultSound, playBounceSound } from '@/lib/sound';
+import { playResultSound, playBounceSound, vibrate } from '@/lib/sound';
 
 interface Dice3DProps {
   dice: DiceInPlay;
@@ -185,27 +185,29 @@ export function Dice3D({ dice }: Dice3DProps) {
   const scale = 0.5;
   const lastBounceTime = useRef(0);
 
-  // 충돌 시 효과음
+  // 충돌 시 효과음 + 진동
   const handleCollision = () => {
-    if (isMuted) return;
-    // 주사위가 2개 이상일 때만 충돌 소리 재생 (차징 중이거나 굴리는 중)
-    if (diceInPlayCount < 2) return;
     // 굴리는 중이 아닐 때는 stable 체크, 차징 중일 때는 무시
     if (!isCharging && isStable) return;
-    
+
     const now = Date.now();
-    // 너무 자주 소리가 나지 않도록 50ms 간격 제한
+    // 너무 자주 소리/진동이 나지 않도록 50ms 간격 제한
     if (now - lastBounceTime.current > 50) {
       const rb = rigidBodyRef.current;
       if (rb) {
         const linvel = rb.linvel();
         const speed = Math.sqrt(linvel.x ** 2 + linvel.y ** 2 + linvel.z ** 2);
         // 차징 중일 때는 고정 강도, 굴리는 중일 때는 속도 기반 강도
-        const intensity = isCharging 
-          ? 0.4 + Math.random() * 0.3 
+        const intensity = isCharging
+          ? 0.4 + Math.random() * 0.3
           : Math.min(1, speed / 10);
         if (intensity > 0.1) {
-          playBounceSound(isMuted, intensity);
+          // 소리 (음소거가 아닐 때, 주사위 2개 이상)
+          if (!isMuted && diceInPlayCount >= 2) {
+            playBounceSound(isMuted, intensity);
+          }
+          // 진동 (모바일) - 강도에 비례하여 10~30ms
+          vibrate(Math.round(10 + intensity * 20));
           lastBounceTime.current = now;
         }
       }
