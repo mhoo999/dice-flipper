@@ -553,7 +553,7 @@ export function TitleScreen() {
         <div className="max-w-6xl mx-auto flex flex-col items-center gap-4">
           <div className="flex gap-4">
             <a
-              href="https://detail-page-builder.vercel.app"
+              href="https://hoons-service-archive.vercel.app/"
               target="_blank"
               rel="noopener noreferrer"
               className="px-6 py-3 bg-white text-black font-medium border border-black hover:bg-gray-100 transition-colors"
@@ -561,7 +561,7 @@ export function TitleScreen() {
               다른 서비스 보러가기
             </a>
             <a
-              href="https://buymeacoffee.com"
+              href="https://hoons-service-archive.vercel.app/#coffee"
               target="_blank"
               rel="noopener noreferrer"
               className="px-6 py-3 bg-white text-black font-medium border border-black hover:bg-gray-100 transition-colors"

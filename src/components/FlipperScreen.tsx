@@ -241,7 +241,7 @@ export function FlipperScreen() {
 
       {/* FAB - 개발자 커피 한잔 사주기 */}
       <a
-        href="https://buymeacoffee.com"
+        href="https://hoons-service-archive.vercel.app/#coffee"
         target="_blank"
         rel="noopener noreferrer"
         className="absolute bottom-24 left-6 px-4 py-3 bg-white text-black font-medium border border-black hover:bg-gray-100 transition-colors text-sm"
