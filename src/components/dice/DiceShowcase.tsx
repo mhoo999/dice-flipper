@@ -24,8 +24,8 @@ function DiceMesh({ customization, isUserInteracting }: { customization: DiceCus
     const txtEntries = Object.entries(customization.faceTexts || {})
       .map(([k, v]) => `${k}:${v}`)
       .join(',');
-    return `${customization.type}-${imgEntries}-${txtEntries}`;
-  }, [customization.type, customization.faceImages, customization.faceTexts]);
+    return `${customization.type}-${imgEntries}-${txtEntries}-${customization.color}-${customization.material}-${customization.opacity}`;
+  }, [customization.type, customization.faceImages, customization.faceTexts, customization.color, customization.material, customization.opacity]);
 
   // 텍스처 생성
   const materials = useMemo(() => {
@@ -236,7 +236,14 @@ function DiceMesh({ customization, isUserInteracting }: { customization: DiceCus
     <Float speed={isUserInteracting ? 0 : 2} rotationIntensity={0.5} floatIntensity={0.5}>
       <mesh ref={meshRef} castShadow receiveShadow>
         {renderGeometry()}
-        <meshStandardMaterial color="#f5f5f5" metalness={0.1} roughness={0.4} flatShading />
+        <meshStandardMaterial 
+          color={customization.color || "#f5f5f5"} 
+          metalness={customization.material === 'metal' ? 0.9 : customization.material === 'glass' ? 0.0 : customization.material === 'wood' ? 0.0 : 0.1}
+          roughness={customization.material === 'metal' ? 0.1 : customization.material === 'glass' ? 0.0 : customization.material === 'wood' ? 0.8 : 0.4}
+          opacity={customization.opacity ?? 1}
+          transparent={(customization.opacity ?? 1) < 1}
+          flatShading 
+        />
       </mesh>
     </Float>
   );

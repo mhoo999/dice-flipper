@@ -48,6 +48,10 @@ interface DiceStore {
   clearFaceImages: () => void;
   setFaceText: (faceNumber: number, text: string) => void;
   clearFaceTexts: () => void;
+  setDiceColor: (color: string) => void;
+  setNumberColor: (color: string) => void;
+  setDiceMaterial: (material: 'plastic' | 'metal' | 'glass' | 'wood') => void;
+  setDiceOpacity: (opacity: number) => void;
   addToTray: () => void;
   removeFromTray: (id: string) => void;
   clearTray: () => void;
@@ -154,6 +158,54 @@ export const useDiceStore = create<DiceStore>()(
           previewDice: {
             ...previewDice,
             faceTexts: {},
+          },
+        });
+      },
+
+      // 주사위 색상 설정
+      setDiceColor: (color) => {
+        const { previewDice } = get();
+        if (!previewDice) return;
+        set({
+          previewDice: {
+            ...previewDice,
+            color,
+          },
+        });
+      },
+
+      // 숫자 색상 설정
+      setNumberColor: (color) => {
+        const { previewDice } = get();
+        if (!previewDice) return;
+        set({
+          previewDice: {
+            ...previewDice,
+            numberColor: color,
+          },
+        });
+      },
+
+      // 주사위 재질 설정
+      setDiceMaterial: (material) => {
+        const { previewDice } = get();
+        if (!previewDice) return;
+        set({
+          previewDice: {
+            ...previewDice,
+            material,
+          },
+        });
+      },
+
+      // 투명도 설정
+      setDiceOpacity: (opacity) => {
+        const { previewDice } = get();
+        if (!previewDice) return;
+        set({
+          previewDice: {
+            ...previewDice,
+            opacity,
           },
         });
       },

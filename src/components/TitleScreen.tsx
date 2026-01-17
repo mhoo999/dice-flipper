@@ -18,7 +18,7 @@ const DICE_TYPES: DiceType[] = ['D6', 'D8', 'D10'];
 export function TitleScreen() {
   const router = useRouter();
   const [isCustomizeOpen, setIsCustomizeOpen] = useState(false);
-  const [customizeMode, setCustomizeMode] = useState<'image' | 'text'>('image');
+  const [customizeTab, setCustomizeTab] = useState<'image' | 'text' | 'color'>('image');
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const previewDice = useDiceStore((state) => state.previewDice);
@@ -31,6 +31,10 @@ export function TitleScreen() {
   const clearFaceImages = useDiceStore((state) => state.clearFaceImages);
   const setFaceText = useDiceStore((state) => state.setFaceText);
   const clearFaceTexts = useDiceStore((state) => state.clearFaceTexts);
+  const setDiceColor = useDiceStore((state) => state.setDiceColor);
+  const setNumberColor = useDiceStore((state) => state.setNumberColor);
+  const setDiceMaterial = useDiceStore((state) => state.setDiceMaterial);
+  const setDiceOpacity = useDiceStore((state) => state.setDiceOpacity);
 
   // 초기 주사위 설정
   useEffect(() => {
@@ -302,7 +306,7 @@ export function TitleScreen() {
                     className="w-full px-6 py-4 flex items-center justify-between hover:bg-gray-50 transition-colors"
                   >
                     <div className="flex items-center gap-2">
-                      <h2 className="text-lg font-bold">면 커스터마이징</h2>
+                      <h2 className="text-lg font-bold">커스터마이징</h2>
                       {hasCustomization && (
                         <span className="text-xs bg-black text-white px-2 py-0.5">적용됨</span>
                       )}
@@ -313,40 +317,52 @@ export function TitleScreen() {
                   {/* 토글 컨텐츠 */}
                   {isCustomizeOpen && (
                     <div className="px-6 pb-6 space-y-4 border-t border-gray-200">
-                      {/* 모드 선택 탭 (D6만) */}
-                      {previewDice?.type === 'D6' && (
-                        <div className="flex border-b border-gray-200 mt-4">
+                      {/* 탭 선택 (이미지 / 텍스트 / 컬러&재질) */}
+                      <div className="flex border-b border-gray-200 mt-4">
+                        {previewDice?.type === 'D6' && (
                           <button
                             onClick={() => {
-                              setCustomizeMode('image');
+                              setCustomizeTab('image');
                               clearFaceTexts();
                             }}
                             className={`flex-1 py-2 text-sm font-medium border-b-2 transition-colors ${
-                              customizeMode === 'image'
+                              customizeTab === 'image'
                                 ? 'border-black text-black'
                                 : 'border-transparent text-gray-500 hover:text-black'
                             }`}
                           >
                             이미지
                           </button>
-                          <button
-                            onClick={() => {
-                              setCustomizeMode('text');
+                        )}
+                        <button
+                          onClick={() => {
+                            setCustomizeTab('text');
+                            if (previewDice?.type === 'D6') {
                               clearFaceImages();
-                            }}
-                            className={`flex-1 py-2 text-sm font-medium border-b-2 transition-colors ${
-                              customizeMode === 'text'
-                                ? 'border-black text-black'
-                                : 'border-transparent text-gray-500 hover:text-black'
-                            }`}
-                          >
-                            텍스트
-                          </button>
-                        </div>
-                      )}
+                            }
+                          }}
+                          className={`flex-1 py-2 text-sm font-medium border-b-2 transition-colors ${
+                            customizeTab === 'text'
+                              ? 'border-black text-black'
+                              : 'border-transparent text-gray-500 hover:text-black'
+                          }`}
+                        >
+                          텍스트
+                        </button>
+                        <button
+                          onClick={() => setCustomizeTab('color')}
+                          className={`flex-1 py-2 text-sm font-medium border-b-2 transition-colors ${
+                            customizeTab === 'color'
+                              ? 'border-black text-black'
+                              : 'border-transparent text-gray-500 hover:text-black'
+                          }`}
+                        >
+                          컬러&재질
+                        </button>
+                      </div>
 
-                      {/* 이미지 모드 (D6 전용) */}
-                      {previewDice?.type === 'D6' && customizeMode === 'image' && (
+                      {/* 이미지 탭 (D6 전용) */}
+                      {previewDice?.type === 'D6' && customizeTab === 'image' && (
                         <div>
                           <div className="flex items-center justify-between mb-3">
                             <label className="text-sm text-gray-600">
@@ -392,9 +408,9 @@ export function TitleScreen() {
                         </div>
                       )}
 
-                      {/* 텍스트 모드 (D6가 아니면 항상 표시) */}
-                      {(previewDice?.type !== 'D6' || customizeMode === 'text') && (
-                        <div className={previewDice?.type !== 'D6' ? 'pt-4' : ''}>
+                      {/* 텍스트 탭 */}
+                      {customizeTab === 'text' && (
+                        <div className="pt-4">
                           <div className="flex items-center justify-between mb-3">
                             <label className="text-sm text-gray-600">
                               각 면에 텍스트 입력 ({faceCount}면)
@@ -430,15 +446,105 @@ export function TitleScreen() {
                         </div>
                       )}
 
+                      {/* 컬러&재질 탭 */}
+                      {customizeTab === 'color' && (
+                        <div className="space-y-4 pt-4">
+                          {/* 주사위 색상 */}
+                          <div>
+                            <label className="text-sm text-gray-600 mb-2 block">
+                              주사위 색상
+                            </label>
+                            <div className="flex items-center gap-2">
+                              <input
+                                type="color"
+                                value={previewDice?.color || '#f5f5f5'}
+                                onChange={(e) => setDiceColor(e.target.value)}
+                                className="w-16 h-10 border border-gray-300 cursor-pointer"
+                              />
+                              <input
+                                type="text"
+                                value={previewDice?.color || '#f5f5f5'}
+                                onChange={(e) => setDiceColor(e.target.value)}
+                                className="flex-1 px-3 py-2 text-sm border border-gray-300 focus:border-black focus:outline-none"
+                                placeholder="#ffffff"
+                              />
+                            </div>
+                          </div>
+
+                          {/* 숫자 색상 */}
+                          <div>
+                            <label className="text-sm text-gray-600 mb-2 block">
+                              숫자 색상
+                            </label>
+                            <div className="flex items-center gap-2">
+                              <input
+                                type="color"
+                                value={previewDice?.numberColor || '#1a1a1a'}
+                                onChange={(e) => setNumberColor(e.target.value)}
+                                className="w-16 h-10 border border-gray-300 cursor-pointer"
+                              />
+                              <input
+                                type="text"
+                                value={previewDice?.numberColor || '#1a1a1a'}
+                                onChange={(e) => setNumberColor(e.target.value)}
+                                className="flex-1 px-3 py-2 text-sm border border-gray-300 focus:border-black focus:outline-none"
+                                placeholder="#000000"
+                              />
+                            </div>
+                          </div>
+
+                          {/* 재질 선택 */}
+                          <div>
+                            <label className="text-sm text-gray-600 mb-2 block">
+                              재질
+                            </label>
+                            <div className="grid grid-cols-2 gap-2">
+                              {(['plastic', 'metal', 'glass', 'wood'] as const).map((material) => (
+                                <button
+                                  key={material}
+                                  onClick={() => setDiceMaterial(material)}
+                                  className={`py-2 px-3 text-sm font-medium border transition-colors ${
+                                    previewDice?.material === material
+                                      ? 'bg-black text-white border-black'
+                                      : 'bg-white text-black border-gray-300 hover:border-black'
+                                  }`}
+                                >
+                                  {material === 'plastic' && '플라스틱'}
+                                  {material === 'metal' && '메탈'}
+                                  {material === 'glass' && '글라스'}
+                                  {material === 'wood' && '우드'}
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+
+                          {/* 투명도 */}
+                          <div>
+                            <label className="text-sm text-gray-600 mb-2 block">
+                              투명도: {Math.round((previewDice?.opacity || 1) * 100)}%
+                            </label>
+                            <input
+                              type="range"
+                              min="0"
+                              max="1"
+                              step="0.01"
+                              value={previewDice?.opacity || 1}
+                              onChange={(e) => setDiceOpacity(parseFloat(e.target.value))}
+                              className="w-full"
+                            />
+                          </div>
+                        </div>
+                      )}
+
                       {/* 구분선 */}
                       <div className="border-t border-gray-200 pt-4">
                         <p className="text-sm text-gray-600 mb-2">저장/불러오기</p>
                         <div className="flex gap-2">
                           <button
                             onClick={handleSaveCustomization}
-                            disabled={!hasCustomization || (previewDice?.type === 'D6' && customizeMode === 'image')}
+                            disabled={!hasCustomization || (previewDice?.type === 'D6' && customizeTab === 'image')}
                             className={`flex-1 px-3 py-2 text-sm font-medium border transition-colors ${
-                              hasCustomization && !(previewDice?.type === 'D6' && customizeMode === 'image')
+                              hasCustomization && !(previewDice?.type === 'D6' && customizeTab === 'image')
                                 ? 'bg-white text-black border-black hover:bg-gray-100'
                                 : 'bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed'
                             }`}

@@ -355,7 +355,14 @@ export function Dice3D({ dice }: Dice3DProps) {
         {renderCollider()}
         <mesh ref={meshRef} castShadow receiveShadow>
           {renderGeometry()}
-          <meshStandardMaterial color="#f5f5f5" metalness={0.1} roughness={0.4} flatShading />
+          <meshStandardMaterial 
+            color={customization.color || "#f5f5f5"} 
+            metalness={customization.material === 'metal' ? 0.9 : customization.material === 'glass' ? 0.0 : customization.material === 'wood' ? 0.0 : 0.1}
+            roughness={customization.material === 'metal' ? 0.1 : customization.material === 'glass' ? 0.0 : customization.material === 'wood' ? 0.8 : 0.4}
+            opacity={customization.opacity ?? 1}
+            transparent={(customization.opacity ?? 1) < 1}
+            flatShading 
+          />
         </mesh>
       </RigidBody>
   );

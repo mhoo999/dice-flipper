@@ -7,21 +7,36 @@ const DEFAULT_DICE_COLOR = '#f5f5f5';
 // D6 면 배치 (Three.js BoxGeometry 순서: +X, -X, +Y, -Y, +Z, -Z)
 const D6_FACE_VALUES = [3, 4, 1, 6, 2, 5];
 
+// 재질에 따른 metalness와 roughness 반환
+function getMaterialProperties(material: 'plastic' | 'metal' | 'glass' | 'wood') {
+  switch (material) {
+    case 'plastic':
+      return { metalness: 0.1, roughness: 0.4 };
+    case 'metal':
+      return { metalness: 0.9, roughness: 0.1 };
+    case 'glass':
+      return { metalness: 0.0, roughness: 0.0 };
+    case 'wood':
+      return { metalness: 0.0, roughness: 0.8 };
+    default:
+      return { metalness: 0.1, roughness: 0.4 };
+  }
+}
 
 // 텍스트 텍스처 생성
-function createTextTexture(text: string): THREE.CanvasTexture {
+function createTextTexture(text: string, numberColor: string = '#1a1a1a', diceColor: string = DEFAULT_DICE_COLOR): THREE.CanvasTexture {
   const size = 512;
   const canvas = document.createElement('canvas');
   canvas.width = size;
   canvas.height = size;
   const ctx = canvas.getContext('2d')!;
 
-  // 배경색
-  ctx.fillStyle = DEFAULT_DICE_COLOR;
+  // 배경색 (주사위 색상 사용)
+  ctx.fillStyle = diceColor;
   ctx.fillRect(0, 0, size, size);
 
   // 텍스트 설정
-  ctx.fillStyle = '#1a1a1a';
+  ctx.fillStyle = numberColor;
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
 
@@ -43,19 +58,19 @@ function createTextTexture(text: string): THREE.CanvasTexture {
 }
 
 // 주사위 눈 텍스처 생성
-function createDiceDotTexture(value: number): THREE.CanvasTexture {
+function createDiceDotTexture(value: number, numberColor: string = '#1a1a1a', diceColor: string = DEFAULT_DICE_COLOR): THREE.CanvasTexture {
   const size = 512;
   const canvas = document.createElement('canvas');
   canvas.width = size;
   canvas.height = size;
   const ctx = canvas.getContext('2d')!;
 
-  // 배경색
-  ctx.fillStyle = DEFAULT_DICE_COLOR;
+  // 배경색 (주사위 색상 사용)
+  ctx.fillStyle = diceColor;
   ctx.fillRect(0, 0, size, size);
 
   // 눈 색상
-  ctx.fillStyle = '#1a1a1a';
+  ctx.fillStyle = numberColor;
   
   // 눈 반지름과 간격
   const dotRadius = 35;
@@ -262,7 +277,8 @@ function createImageTexture(imageUrl: string): THREE.CanvasTexture {
 
 // D6용 머티리얼 배열 생성
 export function createD6Materials(customization: DiceCustomization): THREE.MeshStandardMaterial[] {
-  const { faceImages, faceTexts } = customization;
+  const { faceImages, faceTexts, numberColor, color } = customization;
+  const diceColor = color || DEFAULT_DICE_COLOR;
 
   return D6_FACE_VALUES.map((value) => {
     const faceImage = faceImages?.[value];
@@ -275,29 +291,35 @@ export function createD6Materials(customization: DiceCustomization): THREE.MeshS
       texture = createImageTexture(faceImage);
     } else if (faceText && faceText.trim() !== '') {
       // 커스텀 텍스트가 있으면 텍스트 텍스처
-      texture = createTextTexture(faceText);
+      texture = createTextTexture(faceText, numberColor, diceColor);
     } else {
       // 기본값: 주사위 눈 텍스처
-      texture = createDiceDotTexture(value);
+      texture = createDiceDotTexture(value, numberColor, diceColor);
     }
 
+    // 재질에 따른 metalness와 roughness 조정
+    const materialProps = getMaterialProperties(customization.material || 'plastic');
+    
     return new THREE.MeshStandardMaterial({
       map: texture,
-      metalness: 0.1,
-      roughness: 0.4,
+      color: '#ffffff', // 텍스처 색상을 유지하기 위해 흰색으로 설정 (texture에 이미 주사위 색상이 포함됨)
+      metalness: materialProps.metalness,
+      roughness: materialProps.roughness,
+      opacity: customization.opacity ?? 1,
+      transparent: (customization.opacity ?? 1) < 1,
       flatShading: true,
     });
   });
 }
 
 // 빈 면 텍스처 생성 헬퍼 함수
-function createEmptyTexture(): THREE.CanvasTexture {
+function createEmptyTexture(diceColor: string = DEFAULT_DICE_COLOR): THREE.CanvasTexture {
   const size = 512;
   const canvas = document.createElement('canvas');
   canvas.width = size;
   canvas.height = size;
   const ctx = canvas.getContext('2d')!;
-  ctx.fillStyle = DEFAULT_DICE_COLOR;
+  ctx.fillStyle = diceColor;
   ctx.fillRect(0, 0, size, size);
   const texture = new THREE.CanvasTexture(canvas);
   texture.needsUpdate = true;
@@ -307,7 +329,8 @@ function createEmptyTexture(): THREE.CanvasTexture {
 // 다른 주사위 타입용 머티리얼 배열 생성
 function createOtherDiceMaterials(customization: DiceCustomization): THREE.MeshStandardMaterial[] {
   try {
-    const { type, faceImages, faceTexts } = customization;
+    const { type, faceImages, faceTexts, numberColor, color } = customization;
+    const diceColor = color || DEFAULT_DICE_COLOR;
     // 실제 지오메트리 면 개수 사용 (D10은 dodecahedronGeometry로 12면 사용)
     const geometryFaceCount = type === 'D4' ? 4 : type === 'D8' ? 8 : type === 'D10' ? 12 : type === 'D12' ? 12 : 20;
     // 표시할 숫자 범위 (DICE_CONFIGS의 faces 사용)
@@ -328,18 +351,24 @@ function createOtherDiceMaterials(customization: DiceCustomization): THREE.MeshS
       texture = createImageTexture(faceImage);
     } else if (faceText && faceText.trim() !== '') {
       // 커스텀 텍스트가 있으면 텍스트 텍스처
-      texture = createTextTexture(faceText);
+      texture = createTextTexture(faceText, numberColor, diceColor);
     } else {
       // 숫자 텍스처 제거 - 모든 다면체 주사위에서 숫자 표시 안 함
       // D10의 경우 11-12번 면도 빈 텍스처 (dodecahedronGeometry는 12면)
-      texture = createEmptyTexture();
+      texture = createEmptyTexture(diceColor);
     }
 
+    // 재질에 따른 metalness와 roughness 조정
+    const materialProps = getMaterialProperties(customization.material || 'plastic');
+    
     // 텍스처를 map으로 사용
     const material = new THREE.MeshStandardMaterial({
       map: texture,
-      metalness: 0.1,
-      roughness: 0.4,
+      color: '#ffffff', // 텍스처 색상을 유지하기 위해 흰색으로 설정 (texture에 이미 주사위 색상이 포함됨)
+      metalness: materialProps.metalness,
+      roughness: materialProps.roughness,
+      opacity: customization.opacity ?? 1,
+      transparent: (customization.opacity ?? 1) < 1,
       flatShading: true,
     });
     
@@ -373,11 +402,14 @@ function createOtherDiceMaterials(customization: DiceCustomization): THREE.MeshS
     console.error('Error creating materials for', customization.type, error);
     // 에러 발생 시 기본 재질 배열 반환
     const geometryFaceCount = customization.type === 'D4' ? 4 : customization.type === 'D8' ? 8 : customization.type === 'D10' ? 12 : customization.type === 'D12' ? 12 : 20;
+    const materialProps = getMaterialProperties(customization.material || 'plastic');
     return Array.from({ length: geometryFaceCount }, () => {
       return new THREE.MeshStandardMaterial({
-        color: DEFAULT_DICE_COLOR,
-        metalness: 0.1,
-        roughness: 0.4,
+        color: customization.color || DEFAULT_DICE_COLOR,
+        metalness: materialProps.metalness,
+        roughness: materialProps.roughness,
+        opacity: customization.opacity ?? 1,
+        transparent: (customization.opacity ?? 1) < 1,
         flatShading: true,
       });
     });
