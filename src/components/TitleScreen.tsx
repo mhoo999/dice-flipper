@@ -13,7 +13,7 @@ const DiceShowcaseScene = dynamic(
   { ssr: false }
 );
 
-const DICE_TYPES: DiceType[] = ['D4', 'D6', 'D8', 'D10', 'D12', 'D20'];
+const DICE_TYPES: DiceType[] = ['D4', 'D6', 'D10'];
 
 export function TitleScreen() {
   const router = useRouter();
@@ -268,7 +268,7 @@ export function TitleScreen() {
               {/* 주사위 타입 선택 */}
               <div>
                 <h3 className="text-sm font-medium text-gray-600 mb-3">주사위 타입</h3>
-                <div className="grid grid-cols-6 gap-2">
+                <div className="grid grid-cols-3 gap-2">
                   {DICE_TYPES.map((type) => (
                     <button
                       key={type}
