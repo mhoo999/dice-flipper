@@ -187,7 +187,12 @@ export function Dice3D({ dice }: Dice3DProps) {
 
   // 충돌 시 효과음
   const handleCollision = () => {
-    if (isMuted || isStable) return;
+    if (isMuted) return;
+    // 주사위가 2개 이상일 때만 충돌 소리 재생 (차징 중이거나 굴리는 중)
+    if (diceInPlayCount < 2) return;
+    // 굴리는 중이 아닐 때는 stable 체크, 차징 중일 때는 무시
+    if (!isCharging && isStable) return;
+    
     const now = Date.now();
     // 너무 자주 소리가 나지 않도록 50ms 간격 제한
     if (now - lastBounceTime.current > 50) {
@@ -195,7 +200,10 @@ export function Dice3D({ dice }: Dice3DProps) {
       if (rb) {
         const linvel = rb.linvel();
         const speed = Math.sqrt(linvel.x ** 2 + linvel.y ** 2 + linvel.z ** 2);
-        const intensity = Math.min(1, speed / 10);
+        // 차징 중일 때는 고정 강도, 굴리는 중일 때는 속도 기반 강도
+        const intensity = isCharging 
+          ? 0.4 + Math.random() * 0.3 
+          : Math.min(1, speed / 10);
         if (intensity > 0.1) {
           playBounceSound(isMuted, intensity);
           lastBounceTime.current = now;
