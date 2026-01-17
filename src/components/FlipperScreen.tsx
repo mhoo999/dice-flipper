@@ -4,6 +4,7 @@ import { useEffect, useState, useRef, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import dynamic from 'next/dynamic';
 import { useDiceStore } from '@/store/diceStore';
+import { playThrowSound, playClickSound } from '@/lib/sound';
 
 const DiceScene = dynamic(() => import('./dice/DiceScene'), {
   ssr: false,
@@ -22,6 +23,8 @@ export function FlipperScreen() {
   const isRolling = useDiceStore((state) => state.isRolling);
   const initializePlay = useDiceStore((state) => state.initializePlay);
   const rollAllDice = useDiceStore((state) => state.rollAllDice);
+  const isMuted = useDiceStore((state) => state.isMuted);
+  const toggleMute = useDiceStore((state) => state.toggleMute);
 
   // 파워 게이지 상태
   const [power, setPower] = useState(0);
@@ -54,9 +57,10 @@ export function FlipperScreen() {
 
     // 현재 파워로 던지기 (최소 10%)
     const finalPower = Math.max(10, power);
+    playThrowSound(isMuted);
     rollAllDice(finalPower);
     setPower(0);
-  }, [isCharging, power, rollAllDice]);
+  }, [isCharging, power, rollAllDice, isMuted]);
 
   // 컴포넌트 언마운트 시 인터벌 정리
   useEffect(() => {
@@ -104,7 +108,28 @@ export function FlipperScreen() {
 
           <h1 className="text-xl font-bold text-black">Dice Flipper</h1>
 
-          <div className="w-24" /> {/* Spacer for centering */}
+          {/* 음소거 버튼 */}
+          <button
+            onClick={() => {
+              playClickSound(isMuted);
+              toggleMute();
+            }}
+            className="w-10 h-10 flex items-center justify-center border border-black hover:bg-gray-100 transition-colors"
+            title={isMuted ? '소리 켜기' : '소리 끄기'}
+          >
+            {isMuted ? (
+              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" />
+                <line x1="23" y1="9" x2="17" y2="15" />
+                <line x1="17" y1="9" x2="23" y2="15" />
+              </svg>
+            ) : (
+              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" />
+                <path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07" />
+              </svg>
+            )}
+          </button>
         </div>
       </div>
 

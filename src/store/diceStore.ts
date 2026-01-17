@@ -34,6 +34,10 @@ interface DiceStore {
   // UI 상태
   isRolling: boolean;
 
+  // 사운드 설정
+  isMuted: boolean;
+  toggleMute: () => void;
+
   // 타이틀 화면 액션
   setPreviewDice: (type: DiceType) => void;
   setFaceImage: (faceNumber: number, imageUrl: string) => void;
@@ -77,6 +81,11 @@ export const useDiceStore = create<DiceStore>()(
       rollHistory: [],
       isRolling: false,
       rollPower: 0,
+      isMuted: false,
+
+      toggleMute: () => {
+        set((state) => ({ isMuted: !state.isMuted }));
+      },
 
       // 프리뷰 주사위 설정
       setPreviewDice: (type) => {
@@ -280,6 +289,7 @@ export const useDiceStore = create<DiceStore>()(
       partialize: (state) => ({
         selectedDice: state.selectedDice,
         previewDice: state.previewDice,
+        isMuted: state.isMuted,
       }),
     }
   )

@@ -8,6 +8,7 @@ import { DICE_CONFIGS } from '@/types/dice';
 import { calculateDiceResult } from '@/lib/diceGeometry';
 import { createDiceMaterials } from '@/lib/diceTexture';
 import { useDiceStore, DiceInPlay } from '@/store/diceStore';
+import { playResultSound, playBounceSound } from '@/lib/sound';
 
 interface Dice3DProps {
   dice: DiceInPlay;
@@ -21,6 +22,7 @@ export function Dice3D({ dice }: Dice3DProps) {
 
   const setDiceResult = useDiceStore((state) => state.setDiceResult);
   const rollPower = useDiceStore((state) => state.rollPower);
+  const isMuted = useDiceStore((state) => state.isMuted);
 
   const { customization, position, rotation, isRolling } = dice;
 
@@ -58,7 +60,7 @@ export function Dice3D({ dice }: Dice3DProps) {
       const normalizedX = dirX / length;
       const normalizedZ = dirZ / length;
 
-      const baseSpeed = 15 + 12 * powerMultiplier;
+      const baseSpeed = 10 + 8 * powerMultiplier;
       const force = {
         x: normalizedX * baseSpeed,
         y: 1 + Math.random() * 2 * powerMultiplier,
@@ -104,6 +106,7 @@ export function Dice3D({ dice }: Dice3DProps) {
         const result = calculateDiceResult(customization.type, quaternion);
         setDiceResult(dice.id, result);
         setIsStable(true);
+        playResultSound(isMuted);
       }
     } else {
       stableFrames.current = 0;
@@ -111,6 +114,26 @@ export function Dice3D({ dice }: Dice3DProps) {
   });
 
   const scale = 0.5;
+  const lastBounceTime = useRef(0);
+
+  // 충돌 시 효과음
+  const handleCollision = () => {
+    if (isMuted || isStable) return;
+    const now = Date.now();
+    // 너무 자주 소리가 나지 않도록 50ms 간격 제한
+    if (now - lastBounceTime.current > 50) {
+      const rb = rigidBodyRef.current;
+      if (rb) {
+        const linvel = rb.linvel();
+        const speed = Math.sqrt(linvel.x ** 2 + linvel.y ** 2 + linvel.z ** 2);
+        const intensity = Math.min(1, speed / 10);
+        if (intensity > 0.1) {
+          playBounceSound(isMuted, intensity);
+          lastBounceTime.current = now;
+        }
+      }
+    }
+  };
 
   // D6는 면별 텍스처 적용 (이미지가 있을 때)
   if (customization.type === 'D6' && Array.isArray(materials)) {
@@ -124,6 +147,8 @@ export function Dice3D({ dice }: Dice3DProps) {
         linearDamping={0.05}
         angularDamping={0.05}
         colliders={false}
+        onCollisionEnter={handleCollision}
+        ccd={true}
       >
         <CuboidCollider args={[0.25, 0.25, 0.25]} />
         <mesh ref={meshRef} castShadow receiveShadow material={materials}>
@@ -170,6 +195,8 @@ export function Dice3D({ dice }: Dice3DProps) {
       linearDamping={0.05}
       angularDamping={0.05}
       colliders={false}
+      onCollisionEnter={handleCollision}
+      ccd={true}
     >
       {renderCollider()}
       <mesh ref={meshRef} castShadow receiveShadow>
