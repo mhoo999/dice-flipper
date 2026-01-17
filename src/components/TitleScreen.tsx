@@ -143,7 +143,7 @@ export function TitleScreen() {
 
   // 주사위 세트 불러오기
   const handleLoadDiceSet = async () => {
-    const input = prompt('공유 링크의 ID 또는 전체 URL을 입력하세요:\n예: abc123 또는 /share/abc123 또는 http://localhost:3000/share/abc123');
+    const input = prompt('주사위 세트의 URL을 입력하세요');
     if (!input || !input.trim()) {
       return;
     }
@@ -183,6 +183,9 @@ export function TitleScreen() {
 
       if (confirm(`"${data.name}" 주사위 세트를 불러오시겠습니까? (현재 트레이가 초기화됩니다)`)) {
         loadDiceSetToTray(data.dice_data);
+        setSavedSetName(data.name);
+        setShareId(id);
+        setShareUrl(`${window.location.origin}/?share=${id}`);
         alert('주사위 세트가 불러와졌습니다!');
       }
     } catch (err: any) {
@@ -755,7 +758,7 @@ export function TitleScreen() {
                 </div>
 
                 {/* 저장된 세트 이름 표시 */}
-                {savedSetName && shareUrl && (
+                {savedSetName && shareUrl ? (
                   <div className="mb-4 pb-3 border-b border-gray-200">
                     <p className="text-xs text-gray-500 mb-1">저장된 세트:</p>
                     <button
@@ -768,7 +771,7 @@ export function TitleScreen() {
                       {savedSetName}
                     </button>
                   </div>
-                )}
+                ) : null}
 
                 {selectedDice.length === 0 ? (
                   <p className="text-gray-500 text-center py-8">
@@ -786,9 +789,9 @@ export function TitleScreen() {
                         >
                           <button
                             onClick={() => {
-                              // 주사위 클릭 시 프리뷰로 로드
+                              // 주사위 클릭 시 프리뷰로 로드 (커스터마이징 상태는 유지)
                               setPreviewDiceFromCustomization(dice.customization);
-                              setIsCustomizeOpen(true);
+                              // isCustomizeOpen 상태는 그대로 유지 (강제로 변경하지 않음)
                             }}
                             className="w-full aspect-square flex items-center justify-center text-lg font-bold bg-gray-50 border border-black hover:bg-gray-100 transition-colors cursor-pointer"
                           >
