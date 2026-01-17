@@ -13,7 +13,7 @@ const DiceShowcaseScene = dynamic(
   { ssr: false }
 );
 
-const DICE_TYPES: DiceType[] = ['D4', 'D6', 'D10'];
+const DICE_TYPES: DiceType[] = ['D6', 'D8', 'D10'];
 
 export function TitleScreen() {
   const router = useRouter();

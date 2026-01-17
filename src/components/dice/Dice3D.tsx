@@ -264,8 +264,8 @@ export function Dice3D({ dice }: Dice3DProps) {
       if (customization.type === 'D6') {
         return <CuboidCollider args={[0.25, 0.25, 0.25]} />;
       }
-      // D4, D10는 mesh 기반 convex hull collider 사용 (면 접촉을 위해)
-      if (customization.type === 'D4' || customization.type === 'D10') {
+      // D8, D10는 mesh 기반 convex hull collider 사용 (면 접촉을 위해)
+      if (customization.type === 'D8' || customization.type === 'D10') {
         return null; // mesh ref로 collider 생성
       }
       return <BallCollider args={[0.35]} />;
@@ -289,7 +289,7 @@ export function Dice3D({ dice }: Dice3DProps) {
           friction={friction}
           linearDamping={linearDamping}
           angularDamping={angularDamping}
-          colliders={(customization.type === 'D4' || customization.type === 'D10') ? 'hull' : false}
+          colliders={(customization.type === 'D8' || customization.type === 'D10') ? 'hull' : false}
           onCollisionEnter={handleCollision}
           ccd={true}
         >
