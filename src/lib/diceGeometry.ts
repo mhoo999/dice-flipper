@@ -10,12 +10,13 @@ export const FACE_NORMALS: Record<DiceType, THREE.Vector3[]> = {
     new THREE.Vector3(-0.816, -0.333, -0.471),
   ],
   D6: [
-    new THREE.Vector3(0, 0, 1),   // 1
-    new THREE.Vector3(0, 0, -1),  // 6
-    new THREE.Vector3(0, 1, 0),   // 2
-    new THREE.Vector3(0, -1, 0),  // 5
-    new THREE.Vector3(1, 0, 0),   // 3
-    new THREE.Vector3(-1, 0, 0),  // 4
+    // BoxGeometry 면 순서: +X, -X, +Y, -Y, +Z, -Z
+    new THREE.Vector3(1, 0, 0),   // +X (right) -> 3
+    new THREE.Vector3(-1, 0, 0),  // -X (left) -> 4
+    new THREE.Vector3(0, 1, 0),   // +Y (top) -> 2
+    new THREE.Vector3(0, -1, 0),  // -Y (bottom) -> 5
+    new THREE.Vector3(0, 0, 1),   // +Z (front) -> 1
+    new THREE.Vector3(0, 0, -1),  // -Z (back) -> 6
   ],
   D8: [
     new THREE.Vector3(0.577, 0.577, 0.577),
@@ -112,9 +113,10 @@ export function calculateDiceResult(
     return resultIndex + 1;
   }
 
-  // D6의 반대면 합이 7 규칙 적용
+  // D6의 반대면 합이 7 규칙 적용 (diceTexture.ts의 D6_FACE_VALUES와 일치)
   if (diceType === 'D6') {
-    const faceValues = [1, 6, 2, 5, 3, 4];
+    // +X=3, -X=4, +Y=1, -Y=6, +Z=2, -Z=5
+    const faceValues = [3, 4, 1, 6, 2, 5];
     return faceValues[resultIndex];
   }
 
