@@ -7,6 +7,7 @@ import dynamic from 'next/dynamic';
 import * as XLSX from 'xlsx';
 import { useDiceStore } from '@/store/diceStore';
 import { DiceType, DICE_CONFIGS, DiceCustomization } from '@/types/dice';
+import { saveDiceSet, loadDiceSet } from '@/lib/supabase';
 
 const DiceShowcaseScene = dynamic(
   () => import('./dice/DiceShowcase').then((mod) => mod.DiceShowcaseScene),
@@ -35,6 +36,13 @@ export function TitleScreen() {
   const setNumberColor = useDiceStore((state) => state.setNumberColor);
   const setDiceMaterial = useDiceStore((state) => state.setDiceMaterial);
   const setDiceOpacity = useDiceStore((state) => state.setDiceOpacity);
+  const loadDiceSetToTray = useDiceStore((state) => state.loadDiceSetToTray);
+
+  // Supabase 관련 상태
+  const [isSaving, setIsSaving] = useState(false);
+  const [shareUrl, setShareUrl] = useState<string | null>(null);
+  const [saveName, setSaveName] = useState('');
+  const [shareId, setShareId] = useState<string | null>(null);
 
   // 초기 주사위 설정
   useEffect(() => {
@@ -42,6 +50,103 @@ export function TitleScreen() {
       setPreviewDice('D6');
     }
   }, [previewDice, setPreviewDice]);
+
+  // 주사위 세트 저장
+  const handleSaveDiceSet = async () => {
+    if (selectedDice.length === 0) {
+      alert('저장할 주사위가 없습니다.');
+      return;
+    }
+
+    if (!saveName.trim()) {
+      alert('세트 이름을 입력해주세요.');
+      return;
+    }
+
+    setIsSaving(true);
+    try {
+      const { data, error } = await saveDiceSet(saveName.trim(), selectedDice);
+      
+      if (error) {
+        console.error('Error saving dice set:', error);
+        alert('주사위 세트 저장 중 오류가 발생했습니다.');
+        setIsSaving(false);
+        return;
+      }
+
+      if (data) {
+        const url = `${window.location.origin}/share/${data.id}`;
+        setShareUrl(url);
+        setShareId(data.id);
+        setSaveName('');
+        alert('주사위 세트가 저장되었습니다!');
+      }
+    } catch (err) {
+      console.error('Error saving dice set:', err);
+      alert('주사위 세트 저장 중 오류가 발생했습니다.');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  // 공유 링크 복사
+  const handleCopyShareLink = () => {
+    if (shareUrl) {
+      navigator.clipboard.writeText(shareUrl);
+      alert('공유 링크가 클립보드에 복사되었습니다!');
+    }
+  };
+
+  // 주사위 세트 불러오기
+  const handleLoadDiceSet = async () => {
+    const input = prompt('공유 링크의 ID 또는 전체 URL을 입력하세요:\n예: abc123 또는 /share/abc123 또는 http://localhost:3000/share/abc123');
+    if (!input || !input.trim()) {
+      return;
+    }
+
+    // URL에서 UUID 추출
+    let id = input.trim();
+    
+    // 전체 URL이면 UUID 부분만 추출
+    if (id.includes('/share/')) {
+      const match = id.match(/\/share\/([a-f0-9-]+)/i);
+      if (match && match[1]) {
+        id = match[1];
+      }
+    }
+    
+    // UUID 형식 검증
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    if (!uuidRegex.test(id)) {
+      alert('올바른 UUID 형식이 아닙니다. 공유 링크의 ID 부분만 입력해주세요.');
+      return;
+    }
+
+    try {
+      const { data, error } = await loadDiceSet(id);
+      
+      if (error) {
+        console.error('Error loading dice set:', error);
+        const errorMessage = error?.message || error?.toString() || '알 수 없는 오류';
+        alert(`주사위 세트를 불러올 수 없습니다: ${errorMessage}`);
+        return;
+      }
+
+      if (!data) {
+        alert('주사위 세트를 찾을 수 없습니다.');
+        return;
+      }
+
+      if (confirm(`"${data.name}" 주사위 세트를 불러오시겠습니까? (현재 트레이가 초기화됩니다)`)) {
+        loadDiceSetToTray(data.dice_data);
+        alert('주사위 세트가 불러와졌습니다!');
+      }
+    } catch (err: any) {
+      console.error('Error loading dice set:', err);
+      const errorMessage = err?.message || err?.toString() || '알 수 없는 오류';
+      alert(`주사위 세트를 불러오는 중 오류가 발생했습니다: ${errorMessage}`);
+    }
+  };
 
   const handleStartPlay = () => {
     if (selectedDice.length === 0) {
@@ -161,8 +266,8 @@ export function TitleScreen() {
         }
       });
 
-      // 모드 설정
-      setCustomizeMode(hasImages ? 'image' : 'text');
+      // 탭 설정
+      setCustomizeTab(hasImages ? 'image' : 'text');
       setIsCustomizeOpen(true);
     }, 100);
   };
@@ -633,6 +738,71 @@ export function TitleScreen() {
                     })}
                   </div>
                 )}
+
+                {/* 저장/불러오기 섹션 */}
+                <div className="mt-6 pt-6 border-t border-gray-200 space-y-3">
+                  <h3 className="text-sm font-bold text-gray-600 mb-2">주사위 세트 저장/불러오기</h3>
+                  
+                  {/* 저장 (주사위가 있을 때만) */}
+                  {selectedDice.length > 0 && (
+                    <>
+                      <div className="flex gap-2">
+                        <input
+                          type="text"
+                          value={saveName}
+                          onChange={(e) => setSaveName(e.target.value)}
+                          placeholder="세트 이름"
+                          className="flex-1 px-3 py-2 text-sm border border-gray-300 focus:border-black focus:outline-none"
+                          onKeyPress={(e) => {
+                            if (e.key === 'Enter') {
+                              handleSaveDiceSet();
+                            }
+                          }}
+                        />
+                        <button
+                          onClick={handleSaveDiceSet}
+                          disabled={isSaving || !saveName.trim()}
+                          className={`px-4 py-2 text-sm font-medium border transition-colors ${
+                            isSaving || !saveName.trim()
+                              ? 'bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed'
+                              : 'bg-white text-black border-black hover:bg-gray-100'
+                          }`}
+                        >
+                          {isSaving ? '저장 중...' : '저장'}
+                        </button>
+                      </div>
+
+                      {/* 공유 링크 */}
+                      {shareUrl && (
+                        <div className="p-3 bg-gray-50 border border-gray-200">
+                          <p className="text-xs text-gray-600 mb-1">공유 링크:</p>
+                          <div className="flex gap-2">
+                            <input
+                              type="text"
+                              value={shareUrl}
+                              readOnly
+                              className="flex-1 px-2 py-1 text-xs border border-gray-300 bg-white"
+                            />
+                            <button
+                              onClick={handleCopyShareLink}
+                              className="px-3 py-1 text-xs bg-black text-white hover:bg-gray-800 transition-colors"
+                            >
+                              복사
+                            </button>
+                          </div>
+                        </div>
+                      )}
+                    </>
+                  )}
+
+                  {/* 불러오기 (항상 표시) */}
+                  <button
+                    onClick={handleLoadDiceSet}
+                    className="w-full px-4 py-2 text-sm font-medium bg-white text-black border border-gray-300 hover:border-black hover:bg-gray-50 transition-colors"
+                  >
+                    세트 불러오기
+                  </button>
+                </div>
 
                 {/* 플레이 시작 버튼 */}
                 <button

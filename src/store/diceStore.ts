@@ -55,6 +55,7 @@ interface DiceStore {
   addToTray: () => void;
   removeFromTray: (id: string) => void;
   clearTray: () => void;
+  loadDiceSetToTray: (dice: SelectedDice[]) => void; // 주사위 세트를 트레이에 로드
 
   // 플리퍼 화면 액션
   initializePlay: () => void;
@@ -240,6 +241,20 @@ export const useDiceStore = create<DiceStore>()(
       // 트레이 비우기
       clearTray: () => {
         set({ selectedDice: [] });
+      },
+
+      // 주사위 세트를 트레이에 로드
+      loadDiceSetToTray: (dice) => {
+        // ID 재생성 (중복 방지)
+        const newDice = dice.map((d) => ({
+          ...d,
+          id: generateId(),
+          customization: {
+            ...d.customization,
+            id: generateId(),
+          },
+        }));
+        set({ selectedDice: newDice });
       },
 
       // 플레이 초기화 (트레이 → 플레이)
