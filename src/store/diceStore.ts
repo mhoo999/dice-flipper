@@ -16,6 +16,8 @@ export interface DiceInPlay {
   rotation: [number, number, number];
   result: number | null;
   isRolling: boolean;
+  enabled: boolean; // 사용 가능 여부 (클릭으로 토글)
+  locked: boolean; // 잠금 상태 (결과가 나오면 자동 잠김)
 }
 
 interface DiceStore {
@@ -56,6 +58,9 @@ interface DiceStore {
   rollSingleDice: (id: string) => void;
   rollPower: number;
   setDiceResult: (id: string, result: number) => void;
+  toggleDiceEnabled: (id: string) => void; // enabled 토글
+  toggleDiceLocked: (id: string) => void; // locked 토글
+  toggleAllDiceEnabled: () => void; // 전체 활성화/비활성화 토글
   clearHistory: () => void;
 }
 
@@ -201,21 +206,30 @@ export const useDiceStore = create<DiceStore>()(
           rotation: [0, 0, 0] as [number, number, number],
           result: null,
           isRolling: false,
+          enabled: true, // 기본적으로 활성화
+          locked: false, // 기본적으로 잠금 해제
         }));
 
         set({ diceInPlay, isRolling: false });
       },
 
-      // 모든 주사위 굴리기
+      // 모든 주사위 굴리기 (활성화되고 잠기지 않은 주사위만)
       rollAllDice: (power = 100) => {
         set({ isRolling: true, rollPower: power });
 
+        let enabledIndex = 0;
         set((state) => ({
           diceInPlay: state.diceInPlay.map((d, index) => {
+            // 활성화되지 않았거나 잠긴 주사위는 굴리지 않음
+            if (!d.enabled || d.locked) {
+              return d;
+            }
+            
             // 플레이어(카메라) 쪽에서 시작 - 약간씩 다른 위치
-            const spreadX = (index - (state.diceInPlay.length - 1) / 2) * 0.5;
+            const spreadX = (enabledIndex - (state.diceInPlay.filter(dd => dd.enabled && !dd.locked).length - 1) / 2) * 0.5;
             const randomX = (Math.random() - 0.5) * 0.3;
             const randomZ = Math.random() * 0.3;
+            enabledIndex++;
             return {
               ...d,
               isRolling: true,
@@ -284,6 +298,38 @@ export const useDiceStore = create<DiceStore>()(
         if (allStopped) {
           set({ isRolling: false });
         }
+      },
+
+      // enabled 토글 (활성화/비활성화)
+      toggleDiceEnabled: (id) => {
+        set((state) => ({
+          diceInPlay: state.diceInPlay.map((d) =>
+            d.id === id ? { ...d, enabled: !d.enabled } : d
+          ),
+        }));
+      },
+
+      // locked 토글 (잠금 해제)
+      toggleDiceLocked: (id) => {
+        set((state) => ({
+          diceInPlay: state.diceInPlay.map((d) =>
+            d.id === id ? { ...d, locked: !d.locked } : d
+          ),
+        }));
+      },
+
+      // 전체 활성화/비활성화 토글
+      toggleAllDiceEnabled: () => {
+        set((state) => {
+          const allEnabled = state.diceInPlay.every((d) => d.enabled);
+          const newEnabledState = !allEnabled;
+          return {
+            diceInPlay: state.diceInPlay.map((d) => ({
+              ...d,
+              enabled: newEnabledState,
+            })),
+          };
+        });
       },
 
       // 히스토리 지우기

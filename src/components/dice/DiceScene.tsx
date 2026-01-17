@@ -36,8 +36,8 @@ function Scene() {
         {/* 테이블 */}
         <DiceTable />
 
-        {/* 주사위들 */}
-        {diceInPlay.map((dice) => (
+        {/* 주사위들 (잠기지 않은 주사위만 표시) */}
+        {diceInPlay.filter((dice) => !dice.locked).map((dice) => (
           <Dice3D key={dice.id} dice={dice} />
         ))}
       </Physics>

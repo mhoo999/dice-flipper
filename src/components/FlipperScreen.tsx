@@ -26,6 +26,9 @@ export function FlipperScreen() {
   const isMuted = useDiceStore((state) => state.isMuted);
   const toggleMute = useDiceStore((state) => state.toggleMute);
   const setIsCharging = useDiceStore((state) => state.setIsCharging);
+  const toggleDiceEnabled = useDiceStore((state) => state.toggleDiceEnabled);
+  const toggleDiceLocked = useDiceStore((state) => state.toggleDiceLocked);
+  const toggleAllDiceEnabled = useDiceStore((state) => state.toggleAllDiceEnabled);
 
   // 파워 게이지 상태
   const [power, setPower] = useState(0);
@@ -92,6 +95,9 @@ export function FlipperScreen() {
   });
   const totalResult = numericDice.reduce((sum, d) => sum + (d.result || 0), 0);
   const allDiceHaveResults = diceInPlay.length > 0 && diceInPlay.every((d) => d.result !== null);
+  
+  // 활성화된 주사위가 있는지 확인
+  const hasEnabledDice = diceInPlay.some((d) => d.enabled && !d.locked);
 
   return (
     <div className="relative w-screen h-screen overflow-hidden bg-gray-50">
@@ -139,13 +145,43 @@ export function FlipperScreen() {
       {/* 결과 표시 패널 */}
       <div className="absolute top-20 left-1/2 -translate-x-1/2">
         <div className="flex items-center gap-4 bg-white border border-black px-6 py-4">
+          {/* 전체 온/오프 버튼 */}
+          <button
+            onClick={() => {
+              playClickSound(isMuted);
+              toggleAllDiceEnabled();
+            }}
+            className="px-3 py-2 text-sm font-medium bg-white text-black border border-black hover:bg-gray-100 transition-colors"
+            title="모든 주사위 활성화/비활성화"
+          >
+            전체 {diceInPlay.every((d) => d.enabled) ? 'OFF' : 'ON'}
+          </button>
+          <div className="w-px h-8 bg-gray-300" />
           {diceInPlay.map((dice) => {
             const resultImage = dice.result && dice.customization.faceImages?.[dice.result];
             const resultText = dice.result && dice.customization.faceTexts?.[dice.result];
+            const isDisabled = !dice.enabled || dice.locked;
+            
+            const handleDiceClick = () => {
+              if (dice.locked) {
+                // 잠긴 주사위는 잠금 해제
+                toggleDiceLocked(dice.id);
+              } else {
+                // 활성화/비활성화 토글
+                toggleDiceEnabled(dice.id);
+              }
+            };
+
             return (
-              <div key={dice.id} className="flex flex-col items-center">
+              <div 
+                key={dice.id} 
+                className="flex flex-col items-center cursor-pointer"
+                onClick={handleDiceClick}
+              >
                 <div
-                  className="w-12 h-12 flex items-center justify-center text-lg font-bold mb-1 bg-gray-50 border border-black overflow-hidden"
+                  className={`w-12 h-12 flex items-center justify-center text-lg font-bold mb-1 border border-black overflow-hidden transition-opacity ${
+                    isDisabled ? 'opacity-30 bg-gray-100' : 'bg-gray-50'
+                  }`}
                   style={
                     !dice.isRolling && resultImage
                       ? {
@@ -164,7 +200,9 @@ export function FlipperScreen() {
                     </span>
                   )}
                 </div>
-                <span className="text-xs text-gray-600">{dice.customization.type}</span>
+                <span className={`text-xs ${isDisabled ? 'text-gray-400' : 'text-gray-600'}`}>
+                  {dice.customization.type}
+                </span>
               </div>
             );
           })}
@@ -193,9 +231,9 @@ export function FlipperScreen() {
             onMouseLeave={stopChargingAndRoll}
             onTouchStart={startCharging}
             onTouchEnd={stopChargingAndRoll}
-            disabled={isRolling}
+            disabled={isRolling || !hasEnabledDice}
             className={`relative w-full py-5 font-bold text-2xl border overflow-hidden transition-colors ${
-              isRolling
+              isRolling || !hasEnabledDice
                 ? 'bg-gray-200 text-gray-400 border-gray-300 cursor-not-allowed'
                 : 'bg-black text-white border-black'
             }`}
