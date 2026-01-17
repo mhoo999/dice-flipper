@@ -218,16 +218,14 @@ export function FlipperScreen() {
           {/* 결과 메시지 */}
           {allDiceHaveResults && !isRolling && numericDice.length > 0 && (
             <div className="text-center text-black animate-fade-in">
-              {numericDice.length === 1 ? (
-                <p>결과: <span className="text-2xl font-bold">{totalResult}</span></p>
-              ) : (
-                <p>
-                  총합: <span className="text-2xl font-bold">{totalResult}</span>
+              <p>
+                숫자 합계: <span className="text-2xl font-bold">{totalResult}</span>
+                {numericDice.length > 1 && (
                   <span className="text-sm text-gray-500 ml-2">
                     ({numericDice.map((d) => d.result).join(' + ')})
                   </span>
-                </p>
-              )}
+                )}
+              </p>
             </div>
           )}
         </div>
