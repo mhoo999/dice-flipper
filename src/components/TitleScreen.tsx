@@ -807,9 +807,12 @@ export function TitleScreen() {
                               e.stopPropagation();
                               removeFromTray(dice.id);
                             }}
-                            className="absolute -top-2 -right-2 w-6 h-6 bg-black text-white text-xs opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center z-10"
+                            className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 hover:bg-red-600 text-white flex items-center justify-center z-10 rounded-full shadow-md transition-colors"
                           >
-                            x
+                            <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                              <line x1="18" y1="6" x2="6" y2="18" />
+                              <line x1="6" y1="6" x2="18" y2="18" />
+                            </svg>
                           </button>
                         </div>
                       );
