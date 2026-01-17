@@ -1,6 +1,6 @@
 'use client';
 
-import { useRef, useEffect, useState, useMemo } from 'react';
+import { useRef, useEffect, useState, useMemo, useLayoutEffect } from 'react';
 import { useFrame } from '@react-three/fiber';
 import { RigidBody, RapierRigidBody, CuboidCollider, BallCollider } from '@react-three/rapier';
 import * as THREE from 'three';
@@ -197,8 +197,61 @@ export function Dice3D({ dice }: Dice3DProps) {
     }
   };
 
-  // D6는 면별 텍스처 적용 (눈 패턴 또는 커스텀 이미지/텍스트)
-  if (customization.type === 'D6' && Array.isArray(materials)) {
+  // 다면체 주사위에 geometry.groups 설정 (materials 배열 작동을 위해 필수)
+  useLayoutEffect(() => {
+    if (meshRef.current && materials && Array.isArray(materials) && materials.length > 0 && customization.type !== 'D6') {
+      const mesh = meshRef.current;
+      if (mesh.geometry) {
+        const geometry = mesh.geometry;
+        const faceCount = materials.length;
+        
+        if (!geometry.groups || geometry.groups.length === 0) {
+          const totalCount = geometry.index 
+            ? geometry.index.count 
+            : (geometry.attributes.position?.count || 0);
+          
+          const indicesPerFace = Math.floor(totalCount / faceCount);
+          
+          geometry.clearGroups();
+          for (let i = 0; i < faceCount; i++) {
+            const start = i * indicesPerFace;
+            const count = i === faceCount - 1 ? totalCount - start : indicesPerFace;
+            geometry.addGroup(start, count, i);
+          }
+          mesh.material = materials;
+        }
+      }
+    }
+  }, [meshRef, materials, customization.type]);
+
+  // 모든 주사위 타입에 면별 텍스처 적용
+  if (materials && Array.isArray(materials) && materials.length > 0) {
+    const renderGeometry = () => {
+      switch (customization.type) {
+        case 'D4':
+          return <tetrahedronGeometry args={[scale * 1.2, 0]} />;
+        case 'D6':
+          return <boxGeometry args={[scale, scale, scale]} />;
+        case 'D8':
+          return <octahedronGeometry args={[scale * 0.7, 0]} />;
+        case 'D10':
+          return <dodecahedronGeometry args={[scale * 0.6, 0]} />;
+        case 'D12':
+          return <dodecahedronGeometry args={[scale * 0.65, 0]} />;
+        case 'D20':
+          return <icosahedronGeometry args={[scale * 0.65, 0]} />;
+        default:
+          return <boxGeometry args={[scale, scale, scale]} />;
+      }
+    };
+
+    const renderCollider = () => {
+      if (customization.type === 'D6') {
+        return <CuboidCollider args={[0.25, 0.25, 0.25]} />;
+      }
+      return <BallCollider args={[0.35]} />;
+    };
+
     return (
       <RigidBody
         ref={rigidBodyRef}
@@ -212,15 +265,15 @@ export function Dice3D({ dice }: Dice3DProps) {
         onCollisionEnter={handleCollision}
         ccd={true}
       >
-        <CuboidCollider args={[0.25, 0.25, 0.25]} />
+        {renderCollider()}
         <mesh ref={meshRef} castShadow receiveShadow material={materials}>
-          <boxGeometry args={[scale, scale, scale]} />
+          {renderGeometry()}
         </mesh>
       </RigidBody>
     );
   }
 
-  // 다른 다면체들 - flatShading으로 면 구분
+  // 텍스처가 없는 경우 (fallback)
   const renderGeometry = () => {
     switch (customization.type) {
       case 'D4':
@@ -239,12 +292,10 @@ export function Dice3D({ dice }: Dice3DProps) {
   };
 
   const renderCollider = () => {
-    switch (customization.type) {
-      case 'D6':
-        return <CuboidCollider args={[0.25, 0.25, 0.25]} />;
-      default:
-        return <BallCollider args={[0.35]} />;
+    if (customization.type === 'D6') {
+      return <CuboidCollider args={[0.25, 0.25, 0.25]} />;
     }
+    return <BallCollider args={[0.35]} />;
   };
 
   return (
