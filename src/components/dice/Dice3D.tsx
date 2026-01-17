@@ -282,22 +282,22 @@ export function Dice3D({ dice }: Dice3DProps) {
 
     return (
       <RigidBody
-        ref={rigidBodyRef}
-        position={position}
-        rotation={rotation}
-        restitution={restitution}
-        friction={friction}
-        linearDamping={linearDamping}
-        angularDamping={angularDamping}
-        colliders={(customization.type === 'D4' || customization.type === 'D10') ? 'hull' : false}
-        onCollisionEnter={handleCollision}
-        ccd={true}
-      >
-        {renderCollider()}
-        <mesh ref={meshRef} castShadow receiveShadow material={materials}>
-          {renderGeometry()}
-        </mesh>
-      </RigidBody>
+          ref={rigidBodyRef}
+          position={position}
+          rotation={rotation}
+          restitution={restitution}
+          friction={friction}
+          linearDamping={linearDamping}
+          angularDamping={angularDamping}
+          colliders={(customization.type === 'D4' || customization.type === 'D10') ? 'hull' : false}
+          onCollisionEnter={handleCollision}
+          ccd={true}
+        >
+          {renderCollider()}
+          <mesh ref={meshRef} castShadow receiveShadow material={materials}>
+            {renderGeometry()}
+          </mesh>
+        </RigidBody>
     );
   }
 
@@ -341,23 +341,23 @@ export function Dice3D({ dice }: Dice3DProps) {
 
   return (
     <RigidBody
-      ref={rigidBodyRef}
-      position={position}
-      rotation={rotation}
-      restitution={restitution}
-      friction={friction}
-      linearDamping={linearDamping}
-      angularDamping={angularDamping}
-      colliders={(customization.type === 'D4' || customization.type === 'D10') ? 'hull' : false}
-      onCollisionEnter={handleCollision}
-      ccd={true}
-    >
-      {renderCollider()}
-      <mesh ref={meshRef} castShadow receiveShadow>
-        {renderGeometry()}
-        <meshStandardMaterial color="#f5f5f5" metalness={0.1} roughness={0.4} flatShading />
-      </mesh>
-    </RigidBody>
+        ref={rigidBodyRef}
+        position={position}
+        rotation={rotation}
+        restitution={restitution}
+        friction={friction}
+        linearDamping={linearDamping}
+        angularDamping={angularDamping}
+        colliders={(customization.type === 'D4' || customization.type === 'D10') ? 'hull' : false}
+        onCollisionEnter={handleCollision}
+        ccd={true}
+      >
+        {renderCollider()}
+        <mesh ref={meshRef} castShadow receiveShadow>
+          {renderGeometry()}
+          <meshStandardMaterial color="#f5f5f5" metalness={0.1} roughness={0.4} flatShading />
+        </mesh>
+      </RigidBody>
   );
 }
 

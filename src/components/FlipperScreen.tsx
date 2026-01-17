@@ -163,11 +163,12 @@ export function FlipperScreen() {
             const isDisabled = !dice.enabled || dice.locked;
             
             const handleDiceClick = () => {
-              if (dice.locked) {
-                // 잠긴 주사위는 잠금 해제
+              playClickSound(isMuted);
+              // 결과가 있는 주사위는 잠금/해제 토글
+              if (dice.result !== null) {
                 toggleDiceLocked(dice.id);
               } else {
-                // 활성화/비활성화 토글
+                // 결과가 없는 주사위는 활성화/비활성화 토글
                 toggleDiceEnabled(dice.id);
               }
             };
