@@ -396,7 +396,10 @@ export function TitleScreen() {
   return (
     <div className="min-h-screen bg-white text-black flex flex-col">
       {/* 헤더 */}
-      <header className="border-b border-black px-6 py-4">
+      <header
+        className="border-b border-black px-6 py-4"
+        style={{ paddingTop: 'max(1rem, env(safe-area-inset-top))' }}
+      >
         <div className="max-w-6xl mx-auto">
           <h1 className="text-2xl font-bold">Dice Flipper</h1>
           <p className="text-sm text-gray-600">보드게임을 위한 3D 주사위 시뮬레이터</p>
@@ -906,7 +909,10 @@ export function TitleScreen() {
       </main>
 
       {/* 푸터 */}
-      <footer className="border-t border-gray-300 px-6 py-8">
+      <footer
+        className="border-t border-gray-300 px-6 py-8"
+        style={{ paddingBottom: 'max(2rem, env(safe-area-inset-bottom))' }}
+      >
         <div className="max-w-6xl mx-auto flex flex-col items-center gap-4">
           <div className="flex gap-4">
             <a

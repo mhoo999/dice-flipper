@@ -102,3 +102,35 @@ export function playClickSound(isMuted: boolean) {
   oscillator.start(ctx.currentTime);
   oscillator.stop(ctx.currentTime + 0.05);
 }
+
+// 동전 던지는 소리 (동전이 테이블에 떨어지며 튕기는 소리)
+export function playCoinSound(isMuted: boolean) {
+  if (isMuted) return;
+
+  const ctx = getAudioContext();
+
+  // 동전 튕기는 소리 - 점점 빨라지고 작아지는 "딩딩딩" 소리
+  const bounces = [0, 0.15, 0.27, 0.36, 0.43, 0.48, 0.52, 0.55];
+  const volumes = [0.3, 0.25, 0.2, 0.15, 0.12, 0.08, 0.05, 0.03];
+
+  bounces.forEach((delay, i) => {
+    const oscillator = ctx.createOscillator();
+    const gainNode = ctx.createGain();
+
+    oscillator.connect(gainNode);
+    gainNode.connect(ctx.destination);
+
+    oscillator.type = 'sine';
+    const startTime = ctx.currentTime + delay;
+    const freq = 4000 + Math.random() * 500;
+
+    oscillator.frequency.setValueAtTime(freq, startTime);
+    oscillator.frequency.exponentialRampToValueAtTime(freq * 0.3, startTime + 0.08);
+
+    gainNode.gain.setValueAtTime(volumes[i], startTime);
+    gainNode.gain.exponentialRampToValueAtTime(0.001, startTime + 0.1);
+
+    oscillator.start(startTime);
+    oscillator.stop(startTime + 0.1);
+  });
+}

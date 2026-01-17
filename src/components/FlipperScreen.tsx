@@ -4,7 +4,7 @@ import { useEffect, useState, useRef, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import dynamic from 'next/dynamic';
 import { useDiceStore } from '@/store/diceStore';
-import { playThrowSound, playClickSound } from '@/lib/sound';
+import { playThrowSound, playClickSound, playCoinSound } from '@/lib/sound';
 
 const DiceScene = dynamic(() => import('./dice/DiceScene'), {
   ssr: false,
@@ -37,6 +37,10 @@ export function FlipperScreen() {
 
   // 결과 패널 펼치기/접기
   const [isResultExpanded, setIsResultExpanded] = useState(false);
+
+  // 코인 플립 상태
+  const [isFlipping, setIsFlipping] = useState(false);
+  const [coinResult, setCoinResult] = useState<'heads' | 'tails'>('heads');
 
   // 차징 시작
   const startCharging = useCallback(() => {
@@ -102,10 +106,28 @@ export function FlipperScreen() {
   // 활성화된 주사위가 있는지 확인
   const hasEnabledDice = diceInPlay.some((d) => d.enabled && !d.locked);
 
+  // 코인 플립 함수
+  const flipCoin = useCallback(() => {
+    if (isFlipping) return;
+
+    playCoinSound(isMuted);
+    setIsFlipping(true);
+
+    // 애니메이션 후 결과 표시
+    setTimeout(() => {
+      const result = Math.random() < 0.5 ? 'heads' : 'tails';
+      setCoinResult(result);
+      setIsFlipping(false);
+    }, 600);
+  }, [isFlipping, isMuted]);
+
   return (
     <div className="flex flex-col w-screen h-screen overflow-hidden bg-gray-50">
       {/* 상단 헤더 - 고정 */}
-      <header className="flex-shrink-0 p-3 sm:p-4 bg-white border-b border-black">
+      <header
+        className="flex-shrink-0 p-3 sm:p-4 bg-white border-b border-black"
+        style={{ paddingTop: 'max(0.75rem, env(safe-area-inset-top))' }}
+      >
         <div className="relative flex items-center justify-center max-w-4xl mx-auto">
           {/* 뒤로가기 버튼 - 왼쪽 */}
           <button
@@ -266,25 +288,83 @@ export function FlipperScreen() {
             개발자 커피 한잔 사주기
           </a>
 
-          {/* 오른쪽: 전체 활성화/비활성화 */}
-          <button
-            onClick={() => {
-              playClickSound(isMuted);
-              toggleAllDiceEnabled();
-            }}
-            className={`pointer-events-auto px-3 py-2 sm:px-4 sm:py-3 font-medium border border-black transition-colors text-xs sm:text-sm shadow-md ${
-              diceInPlay.every((d) => d.enabled)
-                ? 'bg-white text-black hover:bg-gray-100'
-                : 'bg-gray-300 text-gray-600 hover:bg-gray-200'
-            }`}
-          >
-            {diceInPlay.every((d) => d.enabled) ? '전체 비활성화' : '전체 활성화'}
-          </button>
+          {/* 오른쪽: 코인 + 전체 활성화/비활성화 */}
+          <div className="flex flex-col items-end gap-2 pointer-events-auto">
+            {/* 코인 플립 버튼 - 1달러 동전 */}
+            <button
+              onClick={flipCoin}
+              disabled={isFlipping}
+              className="w-14 h-14 sm:w-16 sm:h-16 rounded-full shadow-lg transition-all overflow-hidden"
+              style={{
+                background: 'linear-gradient(145deg, #d4af37, #c5a028, #b8962a, #d4af37)',
+                border: '3px solid #a08020',
+                boxShadow: 'inset 0 2px 4px rgba(255,255,255,0.3), inset 0 -2px 4px rgba(0,0,0,0.2), 0 4px 8px rgba(0,0,0,0.3)',
+              }}
+            >
+              <div
+                className="w-full h-full flex items-center justify-center rounded-full"
+                style={{
+                  animation: isFlipping ? 'coinFlip 0.6s ease-out' : 'none',
+                  border: '2px solid #b8962a',
+                }}
+              >
+                {coinResult === 'heads' ? (
+                  // 앞면: 자유의 여신상 (미국 1달러)
+                  <div className="flex flex-col items-center justify-center">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#7c6315" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                      {/* 여신 얼굴 */}
+                      <circle cx="12" cy="10" r="5" />
+                      {/* 왕관 */}
+                      <path d="M7 6L9 3L12 5L15 3L17 6" />
+                      {/* 목/어깨 */}
+                      <path d="M9 15C9 15 9 18 12 18C15 18 15 15 15 15" />
+                      <path d="M8 18L6 21M16 18L18 21" />
+                    </svg>
+                  </div>
+                ) : (
+                  // 뒷면: 독수리 (미국 1달러)
+                  <div className="flex flex-col items-center justify-center">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#7c6315" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                      {/* 독수리 머리 */}
+                      <path d="M12 4C12 4 10 6 12 8C14 6 12 4 12 4Z" fill="#7c6315" />
+                      {/* 날개 */}
+                      <path d="M12 8L6 6L4 10L8 12L12 10" />
+                      <path d="M12 8L18 6L20 10L16 12L12 10" />
+                      {/* 몸통 */}
+                      <path d="M12 10V16" />
+                      {/* 꼬리 */}
+                      <path d="M10 16L12 20L14 16" />
+                      {/* 발 */}
+                      <path d="M10 14L8 16M14 14L16 16" />
+                    </svg>
+                  </div>
+                )}
+              </div>
+            </button>
+
+            {/* 전체 활성화/비활성화 */}
+            <button
+              onClick={() => {
+                playClickSound(isMuted);
+                toggleAllDiceEnabled();
+              }}
+              className={`px-3 py-2 sm:px-4 sm:py-3 font-medium border border-black transition-colors text-xs sm:text-sm shadow-md ${
+                diceInPlay.every((d) => d.enabled)
+                  ? 'bg-white text-black hover:bg-gray-100'
+                  : 'bg-gray-300 text-gray-600 hover:bg-gray-200'
+              }`}
+            >
+              {diceInPlay.every((d) => d.enabled) ? '전체 비활성화' : '전체 활성화'}
+            </button>
+          </div>
         </div>
       </main>
 
       {/* 하단 컨트롤 - 고정 */}
-      <footer className="flex-shrink-0 p-4 sm:p-6 bg-white border-t border-black">
+      <footer
+        className="flex-shrink-0 p-4 sm:p-6 bg-white border-t border-black"
+        style={{ paddingBottom: 'max(1rem, env(safe-area-inset-bottom))' }}
+      >
         <div className="max-w-md mx-auto space-y-3 sm:space-y-4">
           {/* 굴리기 버튼 (파워 게이지) */}
           <button
