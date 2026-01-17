@@ -49,16 +49,26 @@ export function Dice3D({ dice }: Dice3DProps) {
       // 파워에 따른 힘 조절 (최소 20%, 최대 100%)
       const powerMultiplier = Math.max(0.2, rollPower / 100);
 
+      // 중앙 한 포인트(0, 0, 0)를 향해 던지기
+      const targetX = 0;
+      const targetZ = 0;
+      const dirX = targetX - position[0];
+      const dirZ = targetZ - position[2];
+      const length = Math.sqrt(dirX * dirX + dirZ * dirZ) || 1;
+      const normalizedX = dirX / length;
+      const normalizedZ = dirZ / length;
+
+      const baseSpeed = 15 + 12 * powerMultiplier;
       const force = {
-        x: (Math.random() - 0.5) * 10 * powerMultiplier,
-        y: -2 - 3 * powerMultiplier,
-        z: (Math.random() - 0.5) * 10 * powerMultiplier,
+        x: normalizedX * baseSpeed,
+        y: 1 + Math.random() * 2 * powerMultiplier,
+        z: normalizedZ * baseSpeed,
       };
 
       const torque = {
-        x: (Math.random() - 0.5) * 25 * powerMultiplier,
-        y: (Math.random() - 0.5) * 25 * powerMultiplier,
-        z: (Math.random() - 0.5) * 25 * powerMultiplier,
+        x: (Math.random() - 0.5) * 80 * powerMultiplier,
+        y: (Math.random() - 0.5) * 80 * powerMultiplier,
+        z: (Math.random() - 0.5) * 80 * powerMultiplier,
       };
 
       rb.setLinvel({ x: force.x, y: force.y, z: force.z }, true);
@@ -109,10 +119,10 @@ export function Dice3D({ dice }: Dice3DProps) {
         ref={rigidBodyRef}
         position={position}
         rotation={rotation}
-        restitution={0.3}
-        friction={0.8}
-        linearDamping={0.5}
-        angularDamping={0.5}
+        restitution={0.7}
+        friction={0.3}
+        linearDamping={0.05}
+        angularDamping={0.05}
         colliders={false}
       >
         <CuboidCollider args={[0.25, 0.25, 0.25]} />
@@ -155,10 +165,10 @@ export function Dice3D({ dice }: Dice3DProps) {
       ref={rigidBodyRef}
       position={position}
       rotation={rotation}
-      restitution={0.3}
-      friction={0.8}
-      linearDamping={0.5}
-      angularDamping={0.5}
+      restitution={0.7}
+      friction={0.3}
+      linearDamping={0.05}
+      angularDamping={0.05}
       colliders={false}
     >
       {renderCollider()}

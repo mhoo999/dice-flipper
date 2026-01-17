@@ -17,7 +17,7 @@ export function DiceTable({
   return (
     <group>
       {/* 테이블 바닥 */}
-      <RigidBody type="fixed" friction={1} restitution={0.2}>
+      <RigidBody type="fixed" friction={0.2} restitution={0.6}>
         <CuboidCollider args={[size / 2, height / 2, size / 2]} position={[0, -height / 2, 0]} />
         <mesh receiveShadow position={[0, -height / 2, 0]}>
           <boxGeometry args={[size, height, size]} />
@@ -26,7 +26,7 @@ export function DiceTable({
       </RigidBody>
 
       {/* 투명 벽 - 전면 */}
-      <RigidBody type="fixed" friction={0.5} restitution={0.5}>
+      <RigidBody type="fixed" friction={0.2} restitution={0.8}>
         <CuboidCollider
           args={[size / 2, wallHeight / 2, wallThickness / 2]}
           position={[0, wallHeight / 2, size / 2 + wallThickness / 2]}
@@ -34,7 +34,7 @@ export function DiceTable({
       </RigidBody>
 
       {/* 투명 벽 - 후면 */}
-      <RigidBody type="fixed" friction={0.5} restitution={0.5}>
+      <RigidBody type="fixed" friction={0.2} restitution={0.8}>
         <CuboidCollider
           args={[size / 2, wallHeight / 2, wallThickness / 2]}
           position={[0, wallHeight / 2, -size / 2 - wallThickness / 2]}
@@ -42,7 +42,7 @@ export function DiceTable({
       </RigidBody>
 
       {/* 투명 벽 - 좌측 */}
-      <RigidBody type="fixed" friction={0.5} restitution={0.5}>
+      <RigidBody type="fixed" friction={0.2} restitution={0.8}>
         <CuboidCollider
           args={[wallThickness / 2, wallHeight / 2, size / 2 + wallThickness]}
           position={[-size / 2 - wallThickness / 2, wallHeight / 2, 0]}
@@ -50,7 +50,7 @@ export function DiceTable({
       </RigidBody>
 
       {/* 투명 벽 - 우측 */}
-      <RigidBody type="fixed" friction={0.5} restitution={0.5}>
+      <RigidBody type="fixed" friction={0.2} restitution={0.8}>
         <CuboidCollider
           args={[wallThickness / 2, wallHeight / 2, size / 2 + wallThickness]}
           position={[size / 2 + wallThickness / 2, wallHeight / 2, 0]}
@@ -58,7 +58,7 @@ export function DiceTable({
       </RigidBody>
 
       {/* 투명 지붕 */}
-      <RigidBody type="fixed" friction={0.3} restitution={0.8}>
+      <RigidBody type="fixed" friction={0.2} restitution={0.9}>
         <CuboidCollider
           args={[size / 2 + wallThickness, wallThickness / 2, size / 2 + wallThickness]}
           position={[0, wallHeight, 0]}

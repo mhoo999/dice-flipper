@@ -176,16 +176,13 @@ export const useDiceStore = create<DiceStore>()(
         const diceInPlay: DiceInPlay[] = selectedDice.map((d, index) => ({
           id: d.id,
           customization: d.customization,
+          // 테이블 중앙 바닥에 배치
           position: [
-            (index % 3 - 1) * 1.5,
-            3 + Math.random() * 2,
-            Math.floor(index / 3) * 1.5 - 1,
+            (index % 3 - 1) * 1,
+            0.5,
+            Math.floor(index / 3) * 1,
           ] as [number, number, number],
-          rotation: [
-            Math.random() * Math.PI * 2,
-            Math.random() * Math.PI * 2,
-            Math.random() * Math.PI * 2,
-          ] as [number, number, number],
+          rotation: [0, 0, 0] as [number, number, number],
           result: null,
           isRolling: false,
         }));
@@ -198,21 +195,28 @@ export const useDiceStore = create<DiceStore>()(
         set({ isRolling: true, rollPower: power });
 
         set((state) => ({
-          diceInPlay: state.diceInPlay.map((d) => ({
-            ...d,
-            isRolling: true,
-            result: null,
-            position: [
-              (Math.random() - 0.5) * 2,
-              2 + Math.random() * 1,
-              (Math.random() - 0.5) * 2,
-            ] as [number, number, number],
-            rotation: [
-              Math.random() * Math.PI * 2,
-              Math.random() * Math.PI * 2,
-              Math.random() * Math.PI * 2,
-            ] as [number, number, number],
-          })),
+          diceInPlay: state.diceInPlay.map((d, index) => {
+            // 플레이어(카메라) 쪽에서 시작 - 약간씩 다른 위치
+            const spreadX = (index - (state.diceInPlay.length - 1) / 2) * 0.5;
+            const randomX = (Math.random() - 0.5) * 0.3;
+            const randomZ = Math.random() * 0.3;
+            return {
+              ...d,
+              isRolling: true,
+              result: null,
+              // 앞쪽(z=3)에서 시작, 중앙을 향해 던져질 예정
+              position: [
+                spreadX + randomX,
+                1.5 + Math.random() * 0.5,
+                3 + randomZ,
+              ] as [number, number, number],
+              rotation: [
+                Math.random() * Math.PI * 2,
+                Math.random() * Math.PI * 2,
+                Math.random() * Math.PI * 2,
+              ] as [number, number, number],
+            };
+          }),
         }));
       },
 
