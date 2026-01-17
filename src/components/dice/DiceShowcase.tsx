@@ -1,6 +1,6 @@
 'use client';
 
-import { useRef, useMemo } from 'react';
+import { useRef, useMemo, useState } from 'react';
 import { useFrame } from '@react-three/fiber';
 import { OrbitControls, Environment, Float } from '@react-three/drei';
 import * as THREE from 'three';
@@ -11,8 +11,9 @@ interface DiceShowcaseProps {
   customization: DiceCustomization;
 }
 
-function DiceMesh({ customization }: { customization: DiceCustomization }) {
+function DiceMesh({ customization, isUserInteracting }: { customization: DiceCustomization; isUserInteracting: boolean }) {
   const meshRef = useRef<THREE.Mesh>(null);
+  const baseRotationRef = useRef({ y: 0, x: 0 });
 
   // 커스터마이징 키 생성 (실시간 업데이트용)
   const customizationKey = useMemo(() => {
@@ -31,11 +32,18 @@ function DiceMesh({ customization }: { customization: DiceCustomization }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [customizationKey, customization]);
 
-  // 자동 회전
+  // 자동 회전 (사용자가 조작 중이 아닐 때만)
   useFrame((state) => {
     if (meshRef.current) {
-      meshRef.current.rotation.y = state.clock.elapsedTime * 0.5;
-      meshRef.current.rotation.x = Math.sin(state.clock.elapsedTime * 0.3) * 0.2;
+      if (!isUserInteracting) {
+        // 자동 회전
+        const elapsedTime = state.clock.elapsedTime;
+        baseRotationRef.current.y = elapsedTime * 0.5;
+        baseRotationRef.current.x = Math.sin(elapsedTime * 0.3) * 0.2;
+      }
+      // 마지막 회전 상태 유지
+      meshRef.current.rotation.y = baseRotationRef.current.y;
+      meshRef.current.rotation.x = baseRotationRef.current.x;
     }
   });
 
@@ -44,7 +52,7 @@ function DiceMesh({ customization }: { customization: DiceCustomization }) {
   // D6는 6개 면에 각각 다른 머티리얼
   if (customization.type === 'D6' && Array.isArray(materials)) {
     return (
-      <Float speed={2} rotationIntensity={0.5} floatIntensity={0.5}>
+      <Float speed={isUserInteracting ? 0 : 2} rotationIntensity={0.5} floatIntensity={0.5}>
         <mesh key={customizationKey} ref={meshRef} castShadow receiveShadow material={materials}>
           <boxGeometry args={[scale, scale, scale]} />
         </mesh>
@@ -71,7 +79,7 @@ function DiceMesh({ customization }: { customization: DiceCustomization }) {
   };
 
   return (
-    <Float speed={2} rotationIntensity={0.5} floatIntensity={0.5}>
+    <Float speed={isUserInteracting ? 0 : 2} rotationIntensity={0.5} floatIntensity={0.5}>
       <mesh ref={meshRef} castShadow receiveShadow>
         {renderGeometry()}
         <meshStandardMaterial color="#f5f5f5" metalness={0.1} roughness={0.4} flatShading />
@@ -81,6 +89,8 @@ function DiceMesh({ customization }: { customization: DiceCustomization }) {
 }
 
 export function DiceShowcaseScene({ customization }: DiceShowcaseProps) {
+  const [isUserInteracting, setIsUserInteracting] = useState(false);
+
   // DiceMesh 컴포넌트 재마운트를 위한 키 생성
   const meshKey = useMemo(() => {
     const imgEntries = Object.entries(customization.faceImages || {})
@@ -110,7 +120,7 @@ export function DiceShowcaseScene({ customization }: DiceShowcaseProps) {
       <Environment preset="apartment" />
 
       {/* 주사위 */}
-      <DiceMesh key={meshKey} customization={customization} />
+      <DiceMesh key={meshKey} customization={customization} isUserInteracting={isUserInteracting} />
 
       {/* 카메라 컨트롤 */}
       <OrbitControls
@@ -119,8 +129,10 @@ export function DiceShowcaseScene({ customization }: DiceShowcaseProps) {
         enableZoom={false}
         minPolarAngle={Math.PI / 4}
         maxPolarAngle={Math.PI / 1.5}
-        autoRotate
+        autoRotate={!isUserInteracting}
         autoRotateSpeed={1}
+        onStart={() => setIsUserInteracting(true)}
+        onEnd={() => setIsUserInteracting(false)}
       />
     </>
   );
