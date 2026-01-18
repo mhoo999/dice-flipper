@@ -45,15 +45,24 @@ export function FlipperScreen() {
 
   // 결과 패널 펼치기/접기
   const [isResultExpanded, setIsResultExpanded] = useState(false);
-  
+
   // 화면 크기 감지
   const [windowWidth, setWindowWidth] = useState(0);
-  
+
+  // 캔버스 높이 측정을 위한 ref와 state
+  const canvasRef = useRef<HTMLElement>(null);
+  const [canvasHeight, setCanvasHeight] = useState(0);
+
   useEffect(() => {
-    const updateWidth = () => setWindowWidth(window.innerWidth);
-    updateWidth();
-    window.addEventListener('resize', updateWidth);
-    return () => window.removeEventListener('resize', updateWidth);
+    const updateDimensions = () => {
+      setWindowWidth(window.innerWidth);
+      if (canvasRef.current) {
+        setCanvasHeight(canvasRef.current.clientHeight);
+      }
+    };
+    updateDimensions();
+    window.addEventListener('resize', updateDimensions);
+    return () => window.removeEventListener('resize', updateDimensions);
   }, []);
 
   // 차징 시작
@@ -168,13 +177,29 @@ export function FlipperScreen() {
   // 총 표시 항목 수 (합계 박스 1개 + 주사위 개수)
   const totalItems = 1 + diceInPlay.length;
   const currentGridColumns = getGridColumns();
-  // 한 줄에 모든 항목이 표시되면 펼침 버튼 숨김
-  const shouldShowExpandButton = totalItems > currentGridColumns;
+  // 모바일: 한 줄에 모든 항목이 표시되면 펼침 버튼 숨김
+  const shouldShowExpandButtonMobile = totalItems > currentGridColumns;
+
+  // 세로형 그리드 (태블릿/데스크톱): 실제 보이는 항목 수를 기반으로 계산
+  // max-h-[calc(100vh-400px)] 기준으로 실제 보이는 항목 수는 약 7-8개
+  // 보수적으로 7개로 설정하여 펼침 버튼이 제대로 표시되도록 함
+  const itemsPerColumn = 7;
+  // 세로형: 한 컬럼에 모든 항목이 표시되면 펼침 버튼 숨김
+  const shouldShowExpandButtonVertical = totalItems > itemsPerColumn;
+  const verticalExpandedColumns = Math.ceil(totalItems / itemsPerColumn);
   
-  // 데스크톱 세로형: 펼침 상태에서 필요한 컬럼 수 계산
-  // 한 컬럼에 들어갈 수 있는 항목 수 (대략 8개, 항목 높이 약 71px)
-  const itemsPerColumn = 8;
-  const desktopExpandedColumns = Math.ceil(totalItems / itemsPerColumn);
+  // 디버깅: 펼침 버튼 표시 조건 확인
+  useEffect(() => {
+    if (windowWidth >= 768) {
+      console.log('펼침 버튼 디버깅:', {
+        totalItems,
+        itemsPerColumn,
+        shouldShowExpandButtonVertical,
+        verticalExpandedColumns,
+        diceInPlayLength: diceInPlay.length
+      });
+    }
+  }, [totalItems, itemsPerColumn, shouldShowExpandButtonVertical, verticalExpandedColumns, diceInPlay.length, windowWidth]);
 
   return (
     <div
@@ -226,14 +251,14 @@ export function FlipperScreen() {
       </header>
 
       {/* 캔버스 영역 - 남은 공간 채움 */}
-      <main className="flex-1 relative overflow-hidden">
+      <main ref={canvasRef} className="flex-1 relative overflow-hidden">
         {/* 3D 씬 */}
         <DiceScene />
 
-        {/* 결과 표시 패널 - 모바일: 상단 가로형, 데스크톱: 좌측 세로형 */}
-        <div className="absolute top-2 sm:top-4 lg:top-6 left-2 right-2 sm:left-4 sm:right-4 lg:left-6 lg:right-auto lg:w-auto lg:max-w-none">
+        {/* 결과 표시 패널 - 모바일: 상단 가로형, 태블릿/데스크톱: 좌측 세로형 */}
+        <div className="absolute top-2 sm:top-4 md:top-6 left-3 right-2 sm:left-4 sm:right-4 md:left-4 md:right-auto md:w-auto md:max-w-none">
           {/* 모바일: 상단 가로형 배치 */}
-          <div className="lg:hidden relative flex items-center justify-center max-w-4xl mx-auto">
+          <div className="md:hidden relative flex items-center justify-center max-w-4xl mx-auto">
             <div className="relative bg-white border border-black shadow-lg w-full">
             {/* 주사위 그리드 */}
             <div className={`overflow-hidden transition-all ${isResultExpanded ? 'max-h-[400px]' : 'max-h-[88px]'}`}>
@@ -302,8 +327,8 @@ export function FlipperScreen() {
           </div>
 
           {/* 모바일: 펼침 토글 - 컨테이너 아래 우측 */}
-          {shouldShowExpandButton && (
-            <div className="lg:hidden relative flex items-center justify-center max-w-4xl mx-auto">
+          {shouldShowExpandButtonMobile && (
+            <div className="md:hidden relative flex items-center justify-center max-w-4xl mx-auto">
               <div className="flex justify-end mr-2 -mt-[1px]">
                 <button
                   onClick={() => setIsResultExpanded(!isResultExpanded)}
@@ -329,14 +354,16 @@ export function FlipperScreen() {
             </div>
           )}
 
-          {/* 데스크톱: 좌측 세로형 배치 */}
-          <div className="hidden lg:block">
-            <div className={`relative bg-white border border-black shadow-lg transition-all ${isResultExpanded ? 'w-[200px]' : 'w-[80px]'} h-[calc(100vh-280px)] flex flex-col`}>
+          {/* 태블릿/데스크톱: 좌측 세로형 배치 */}
+          <div className="hidden md:block">
+            <div
+              className={`relative bg-white border border-black shadow-lg transition-all ${isResultExpanded ? 'w-auto' : 'w-[80px]'} h-[calc(100vh-280px)] flex flex-col overflow-visible`}
+            >
               {/* 주사위 그리드 - 세로형 */}
-              <div className={`overflow-hidden transition-all ${isResultExpanded ? 'flex-1' : 'h-auto max-h-[calc(100vh-400px)]'}`}>
-                <div 
+              <div className="overflow-hidden transition-all h-full">
+                <div
                   className="grid gap-3 p-4"
-                  style={{ gridTemplateColumns: `repeat(${isResultExpanded ? desktopExpandedColumns : 1}, minmax(0, 1fr))` }}
+                  style={{ gridTemplateColumns: `repeat(${isResultExpanded ? verticalExpandedColumns : 1}, minmax(0, 1fr))` }}
                 >
                   {/* 합계 박스 - 첫 번째 위치 */}
                   <div className="flex flex-col items-center gap-1 cursor-pointer">
@@ -398,9 +425,9 @@ export function FlipperScreen() {
                 </div>
               </div>
 
-              {/* 데스크톱: 펼침 토글 - 오른쪽 */}
-              {(shouldShowExpandButton || diceInPlay.length > 0) && (
-                <div className="absolute top-1/2 -translate-y-1/2 -right-1 translate-x-full z-10 pointer-events-auto">
+              {/* 태블릿/데스크톱: 펼침 토글 - 오른쪽 */}
+              {(shouldShowExpandButtonVertical || diceInPlay.length > 0) && (
+                <div className="absolute top-1/2 -translate-y-1/2 -right-1 translate-x-full z-50 pointer-events-auto" style={{ position: 'absolute' }}>
                   <button
                     onClick={() => setIsResultExpanded(!isResultExpanded)}
                     className="px-2 py-3 bg-white border-t border-r border-b border-black hover:bg-gray-50 transition-colors text-xs flex flex-col items-center gap-1 shadow-md"
