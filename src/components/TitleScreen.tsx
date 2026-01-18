@@ -22,6 +22,7 @@ export function TitleScreen() {
   const [isCustomizeOpen, setIsCustomizeOpen] = useState(false);
   const [customizeTab, setCustomizeTab] = useState<'image' | 'text' | 'color'>('image');
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [selectedDiceId, setSelectedDiceId] = useState<string | null>(null);
 
   const previewDice = useDiceStore((state) => state.previewDice);
   const selectedDice = useDiceStore((state) => state.selectedDice);
@@ -785,6 +786,10 @@ export function TitleScreen() {
                     {selectedDice.map((dice) => {
                       const hasImg = dice.customization.faceImages && Object.keys(dice.customization.faceImages).length > 0;
                       const hasTxt = dice.customization.faceTexts && Object.values(dice.customization.faceTexts).some(t => t && t.trim() !== '');
+                      
+                      // 현재 프리뷰에 선택된 주사위인지 확인 (클릭한 주사위의 id로 비교)
+                      const isSelected = selectedDiceId === dice.id;
+                      
                       return (
                         <div
                           key={dice.id}
@@ -794,9 +799,14 @@ export function TitleScreen() {
                             onClick={() => {
                               // 주사위 클릭 시 프리뷰로 로드 (커스터마이징 상태는 유지)
                               setPreviewDiceFromCustomization(dice.customization);
+                              setSelectedDiceId(dice.id); // 선택된 주사위 id 저장
                               // isCustomizeOpen 상태는 그대로 유지 (강제로 변경하지 않음)
                             }}
-                            className="w-full aspect-square flex items-center justify-center text-lg font-bold bg-gray-50 border border-black hover:bg-gray-100 transition-colors cursor-pointer"
+                            className={`w-full aspect-square flex items-center justify-center text-lg font-bold transition-colors cursor-pointer ${
+                              isSelected 
+                                ? 'bg-blue-100 border-2 border-blue-500 hover:bg-blue-200' 
+                                : 'bg-gray-50 border border-black hover:bg-gray-100'
+                            }`}
                           >
                             {dice.customization.type}
                             {(hasImg || hasTxt) && (
