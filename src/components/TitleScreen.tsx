@@ -204,20 +204,100 @@ export function TitleScreen() {
     router.push('/play');
   };
 
+  // 이미지 압축 및 리사이즈 함수
+  const compressImage = (file: File, maxWidth: number = 512, maxHeight: number = 512, quality: number = 0.8): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        const img = new Image();
+        img.onload = () => {
+          // 원본 크기 확인
+          let width = img.width;
+          let height = img.height;
+
+          // 비율 유지하며 리사이즈
+          if (width > maxWidth || height > maxHeight) {
+            const ratio = Math.min(maxWidth / width, maxHeight / height);
+            width = width * ratio;
+            height = height * ratio;
+          }
+
+          // 캔버스에 그리기
+          const canvas = document.createElement('canvas');
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext('2d');
+          if (!ctx) {
+            reject(new Error('Canvas context를 가져올 수 없습니다.'));
+            return;
+          }
+
+          ctx.drawImage(img, 0, 0, width, height);
+
+          // JPEG로 압축 (PNG보다 작음)
+          const compressedDataUrl = canvas.toDataURL('image/jpeg', quality);
+          resolve(compressedDataUrl);
+        };
+        img.onerror = () => reject(new Error('이미지를 로드할 수 없습니다.'));
+        img.src = event.target?.result as string;
+      };
+      reader.onerror = () => reject(new Error('파일을 읽을 수 없습니다.'));
+      reader.readAsDataURL(file);
+    });
+  };
+
+  // localStorage 크기 확인 함수
+  const checkLocalStorageSize = (): { used: number; available: number } => {
+    let used = 0;
+    try {
+      for (let key in localStorage) {
+        if (localStorage.hasOwnProperty(key)) {
+          used += localStorage[key].length + key.length;
+        }
+      }
+    } catch (e) {
+      console.error('localStorage 크기 확인 실패:', e);
+    }
+    // 대략적인 localStorage 제한 (브라우저마다 다름, 보통 5-10MB)
+    const available = 5 * 1024 * 1024 - used; // 5MB 기준
+    return { used, available };
+  };
+
   // 이미지 업로드 처리
-  const handleImageUpload = (faceNumber: number) => {
+  const handleImageUpload = async (faceNumber: number) => {
     const input = document.createElement('input');
     input.type = 'file';
     input.accept = 'image/*';
-    input.onchange = (e) => {
+    input.onchange = async (e) => {
       const file = (e.target as HTMLInputElement).files?.[0];
-      if (file) {
-        const reader = new FileReader();
-        reader.onload = (event) => {
-          const dataUrl = event.target?.result as string;
-          setFaceImage(faceNumber, dataUrl);
-        };
-        reader.readAsDataURL(file);
+      if (!file) return;
+
+      // 파일 크기 제한 (10MB)
+      const maxFileSize = 10 * 1024 * 1024; // 10MB
+      if (file.size > maxFileSize) {
+        alert(`이미지 파일이 너무 큽니다. (최대 10MB)\n현재 파일 크기: ${(file.size / 1024 / 1024).toFixed(2)}MB`);
+        return;
+      }
+
+      try {
+        // 이미지 압축 (512x512, quality 0.8)
+        const compressedDataUrl = await compressImage(file, 512, 512, 0.8);
+        
+        // 압축된 이미지 크기 확인
+        const compressedSize = compressedDataUrl.length;
+        const { available } = checkLocalStorageSize();
+
+        // localStorage 여유 공간 확인 (압축된 이미지 + 여유 공간 100KB)
+        if (compressedSize > available - 100 * 1024) {
+          alert(`저장 공간이 부족합니다.\n이미지가 너무 많거나 크면 저장되지 않을 수 있습니다.\n다른 이미지를 제거하거나 더 작은 이미지를 사용해주세요.`);
+          return;
+        }
+
+        // 이미지 설정
+        setFaceImage(faceNumber, compressedDataUrl);
+      } catch (error) {
+        console.error('이미지 처리 오류:', error);
+        alert(`이미지를 처리하는 중 오류가 발생했습니다: ${error instanceof Error ? error.message : '알 수 없는 오류'}`);
       }
     };
     input.click();
@@ -226,6 +306,57 @@ export function TitleScreen() {
   // 텍스트 변경 처리
   const handleTextChange = (faceNumber: number, text: string) => {
     setFaceText(faceNumber, text);
+  };
+
+  // 트레이에 추가 (크기 확인 포함)
+  const handleAddToTray = () => {
+    if (!previewDice) return;
+
+    // 이미지가 있는 경우 크기 확인
+    const faceImages = previewDice.faceImages || {};
+    const imageCount = Object.keys(faceImages).length;
+    
+    if (imageCount > 0) {
+      // 현재 선택된 주사위의 총 이미지 크기 계산
+      let totalImageSize = 0;
+      Object.values(faceImages).forEach((imageUrl) => {
+        if (imageUrl && imageUrl.startsWith('data:')) {
+          totalImageSize += imageUrl.length;
+        }
+      });
+
+      // 기존 트레이의 이미지 크기 계산
+      selectedDice.forEach((dice) => {
+        const images = dice.customization.faceImages || {};
+        Object.values(images).forEach((imageUrl) => {
+          if (imageUrl && imageUrl.startsWith('data:')) {
+            totalImageSize += imageUrl.length;
+          }
+        });
+      });
+
+      // localStorage 여유 공간 확인
+      const { available } = checkLocalStorageSize();
+      const estimatedSize = totalImageSize + 50 * 1024; // 추가 여유 공간
+
+      if (estimatedSize > available) {
+        const shouldContinue = confirm(
+          `저장 공간이 부족할 수 있습니다.\n` +
+          `예상 크기: ${(estimatedSize / 1024 / 1024).toFixed(2)}MB\n` +
+          `여유 공간: ${(available / 1024 / 1024).toFixed(2)}MB\n\n` +
+          `계속하시겠습니까? 저장이 실패할 수 있습니다.`
+        );
+        if (!shouldContinue) return;
+      }
+    }
+
+    // 트레이에 추가
+    try {
+      addToTray();
+    } catch (error) {
+      console.error('트레이에 추가 실패:', error);
+      alert('주사위를 트레이에 추가하는 중 오류가 발생했습니다. 저장 공간이 부족할 수 있습니다.');
+    }
   };
 
   // CSV로 커스터마이징 저장
@@ -733,7 +864,7 @@ export function TitleScreen() {
               {/* 트레이에 추가 버튼 */}
               {previewDice && (
                 <button
-                  onClick={addToTray}
+                  onClick={handleAddToTray}
                   className="w-full py-4 bg-black text-white font-bold text-lg border border-black hover:bg-gray-800 transition-colors"
                 >
                   + 트레이에 추가
