@@ -921,6 +921,10 @@ export function TitleScreen() {
                       // 현재 프리뷰에 선택된 주사위인지 확인 (클릭한 주사위의 id로 비교)
                       const isSelected = selectedDiceId === dice.id;
                       
+                      // 1면 프리뷰 데이터
+                      const face1Image = dice.customization.faceImages?.[1];
+                      const face1Text = dice.customization.faceTexts?.[1];
+                      
                       return (
                         <div
                           key={dice.id}
@@ -933,15 +937,37 @@ export function TitleScreen() {
                               setSelectedDiceId(dice.id); // 선택된 주사위 id 저장
                               // isCustomizeOpen 상태는 그대로 유지 (강제로 변경하지 않음)
                             }}
-                            className={`w-full aspect-square flex items-center justify-center text-lg font-bold transition-colors cursor-pointer ${
+                            className={`w-full aspect-square flex flex-col items-center justify-center text-sm font-bold transition-colors cursor-pointer overflow-hidden relative ${
                               isSelected 
                                 ? 'bg-blue-100 border-2 border-blue-500 hover:bg-blue-200' 
                                 : 'bg-gray-50 border border-black hover:bg-gray-100'
                             }`}
+                            style={
+                              face1Image
+                                ? {
+                                    backgroundImage: `url(${face1Image})`,
+                                    backgroundSize: 'cover',
+                                    backgroundPosition: 'center',
+                                  }
+                                : {}
+                            }
                           >
-                            {dice.customization.type}
+                            {/* 1면 이미지가 있으면 이미지만 표시, 없으면 타입과 텍스트/숫자 표시 */}
+                            {!face1Image && (
+                              <>
+                                <span className="text-xs mb-1">{dice.customization.type}</span>
+                                {face1Text ? (
+                                  <span className={`text-lg ${face1Text.length > 2 ? 'text-[10px]' : ''}`}>
+                                    {face1Text}
+                                  </span>
+                                ) : (
+                                  <span className="text-2xl">1</span>
+                                )}
+                              </>
+                            )}
+                            {/* 커스터마이징 표시 배지 */}
                             {(hasImg || hasTxt) && (
-                              <span className="absolute bottom-1 right-1 text-xs bg-black text-white px-1">
+                              <span className="absolute bottom-1 right-1 text-[8px] bg-black text-white px-1 opacity-80">
                                 {hasImg ? 'IMG' : 'TXT'}
                               </span>
                             )}

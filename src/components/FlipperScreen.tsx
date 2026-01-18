@@ -242,8 +242,13 @@ export function FlipperScreen() {
 
                 {/* 주사위들 */}
                 {diceInPlay.map((dice) => {
-                  const resultImage = dice.result && dice.customization.faceImages?.[dice.result];
-                  const resultText = dice.result && dice.customization.faceTexts?.[dice.result];
+                  // 결과가 있으면 결과 이미지/텍스트, 없으면 1면 이미지/텍스트
+                  const resultImage = dice.result 
+                    ? dice.customization.faceImages?.[dice.result]
+                    : dice.customization.faceImages?.[1];
+                  const resultText = dice.result
+                    ? dice.customization.faceTexts?.[dice.result]
+                    : dice.customization.faceTexts?.[1];
                   const isDisabled = !dice.enabled || dice.locked;
 
                   const handleDiceClick = () => {
@@ -279,7 +284,7 @@ export function FlipperScreen() {
                           <span className="animate-spin">?</span>
                         ) : resultImage ? null : (
                           <span className={resultText && resultText.length > 2 ? 'text-[10px]' : ''}>
-                            {resultText || dice.result || '-'}
+                            {resultText || dice.result || '1'}
                           </span>
                         )}
                       </div>
