@@ -230,7 +230,7 @@ export function FlipperScreen() {
           <div className="relative flex items-center justify-start max-w-4xl">
             <div className="relative bg-white border border-black shadow-lg w-auto">
             {/* 주사위 그리드 */}
-            <div className={`overflow-hidden transition-all ${isResultExpanded ? 'max-h-[400px]' : 'max-h-[88px] lg:max-h-[92px]'}`}>
+            <div className={`overflow-hidden transition-all ${isResultExpanded ? 'max-h-[600px]' : 'max-h-[72px]'}`}>
               <div className="grid grid-cols-5 gap-2 p-3">
                 {/* 합계 박스 - 첫 번째 위치 */}
                 <div className="flex flex-col items-center">
