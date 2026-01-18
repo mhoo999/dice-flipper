@@ -357,7 +357,7 @@ export function FlipperScreen() {
           {/* 태블릿/데스크톱: 좌측 세로형 배치 */}
           <div className="hidden md:block">
             <div
-              className={`relative bg-white border border-black shadow-lg transition-all ${isResultExpanded ? 'w-auto' : 'w-[80px]'} h-[calc(100vh-280px)] flex flex-col overflow-visible`}
+              className={`relative bg-white border border-black shadow-lg transition-all ${isResultExpanded ? 'w-auto' : 'w-[80px]'} h-[calc(100vh-280px)] md:h-[calc(100dvh-320px)] lg:h-[calc(100vh-280px)] flex flex-col overflow-visible`}
             >
               {/* 주사위 그리드 - 세로형 */}
               <div className="overflow-hidden transition-all h-full">
