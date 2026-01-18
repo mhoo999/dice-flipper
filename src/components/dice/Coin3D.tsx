@@ -5,7 +5,7 @@ import { useFrame } from '@react-three/fiber';
 import { RigidBody, RapierRigidBody, CylinderCollider } from '@react-three/rapier';
 import * as THREE from 'three';
 import { useDiceStore } from '@/store/diceStore';
-import { playResultSound, playCoinSound, vibrate } from '@/lib/sound';
+import { playResultSound, playCoinSound, playCoinSpinSound, vibrate } from '@/lib/sound';
 
 export function Coin3D() {
   const rigidBodyRef = useRef<RapierRigidBody>(null);
@@ -20,6 +20,7 @@ export function Coin3D() {
 
   const { isFlipping, isCharging, chargingPower, position, rotation, power } = coin;
   const wobbleTime = useRef(0);
+  const lastSpinSoundTime = useRef(0);
 
   // 차징 중일 때 제자리에서 진동
   useEffect(() => {
@@ -115,6 +116,17 @@ export function Coin3D() {
 
       rb.setLinvel({ x: 0, y: 0, z: 0 }, true);
       rb.setAngvel({ x: 0, y: 0, z: 0 }, true);
+
+      // 스핀 소리 (파워에 따라 빈도 증가: 200ms → 80ms)
+      const now = Date.now();
+      const soundInterval = 200 - (chargingPower / 100) * 120;
+      if (now - lastSpinSoundTime.current > soundInterval) {
+        if (!isMuted) {
+          playCoinSpinSound(isMuted);
+        }
+        lastSpinSoundTime.current = now;
+      }
+
       return;
     }
 
