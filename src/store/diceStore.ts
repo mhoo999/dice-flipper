@@ -23,9 +23,12 @@ export interface DiceInPlay {
 // 코인 상태
 export interface CoinState {
   isFlipping: boolean;
+  isCharging: boolean; // 차징 중 (진동)
+  chargingPower: number; // 차징 중 파워 (진동 강도용)
   result: 'heads' | 'tails' | null;
   position: [number, number, number];
   rotation: [number, number, number];
+  power: number;
 }
 
 interface DiceStore {
@@ -81,7 +84,8 @@ interface DiceStore {
   clearHistory: () => void;
 
   // 코인 액션
-  flipCoin: () => void;
+  setCoinCharging: (charging: boolean, power?: number) => void;
+  flipCoin: (power?: number) => void;
   setCoinResult: (result: 'heads' | 'tails') => void;
 }
 
@@ -108,9 +112,12 @@ export const useDiceStore = create<DiceStore>()(
       diceInPlay: [],
       coin: {
         isFlipping: false,
+        isCharging: false,
+        chargingPower: 0,
         result: null,
-        position: [2.5, 0.5, 0] as [number, number, number],
+        position: [0, 2.1, 0] as [number, number, number], // 코인 전용 바닥(2) 바로 위
         rotation: [0, 0, 0] as [number, number, number],
+        power: 0,
       },
       rollHistory: [],
       isRolling: false,
@@ -328,10 +335,10 @@ export const useDiceStore = create<DiceStore>()(
               ...d,
               isRolling: true,
               result: null,
-              // 앞쪽(z=3)에서 시작, 중앙을 향해 던져질 예정
+              // 앞쪽(z=3)에서 시작, 중앙을 향해 던져질 예정 (코인바닥 2 아래로 제한)
               position: [
                 spreadX + randomX,
-                1.5 + Math.random() * 0.5,
+                0.8 + Math.random() * 0.4,
                 3 + randomZ,
               ] as [number, number, number],
               rotation: [
@@ -355,7 +362,7 @@ export const useDiceStore = create<DiceStore>()(
                   result: null,
                   position: [
                     (Math.random() - 0.5) * 2,
-                    2 + Math.random() * 1,
+                    0.8 + Math.random() * 0.4,
                     (Math.random() - 0.5) * 2,
                   ] as [number, number, number],
                   rotation: [
@@ -431,19 +438,31 @@ export const useDiceStore = create<DiceStore>()(
         set({ rollHistory: [] });
       },
 
+      // 코인 차징 상태 설정
+      setCoinCharging: (charging, power = 0) => {
+        set((state) => ({
+          coin: {
+            ...state.coin,
+            isCharging: charging,
+            chargingPower: power,
+          },
+        }));
+      },
+
       // 코인 플립
-      flipCoin: () => {
+      flipCoin: (power = 50) => {
         set((state) => ({
           coin: {
             ...state.coin,
             isFlipping: true,
             result: null,
-            position: [2.5, 2, 0] as [number, number, number],
+            position: [0, 2.1, 0] as [number, number, number], // 코인 전용 바닥(2) 바로 위에서 시작
             rotation: [
+              Math.random() * Math.PI * 0.3,
               Math.random() * Math.PI * 2,
-              Math.random() * Math.PI * 2,
-              Math.random() * Math.PI * 2,
+              Math.random() * Math.PI * 0.3,
             ] as [number, number, number],
+            power: Math.max(10, power),
           },
         }));
       },

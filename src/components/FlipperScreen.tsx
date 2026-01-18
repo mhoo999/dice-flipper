@@ -31,11 +31,17 @@ export function FlipperScreen() {
   const toggleAllDiceEnabled = useDiceStore((state) => state.toggleAllDiceEnabled);
   const coin = useDiceStore((state) => state.coin);
   const flipCoin = useDiceStore((state) => state.flipCoin);
+  const setCoinCharging = useDiceStore((state) => state.setCoinCharging);
 
-  // 파워 게이지 상태
+  // 파워 게이지 상태 (주사위)
   const [power, setPower] = useState(0);
   const [isChargingLocal, setIsChargingLocal] = useState(false);
   const chargeInterval = useRef<NodeJS.Timeout | null>(null);
+
+  // 파워 게이지 상태 (코인)
+  const [coinPower, setCoinPower] = useState(0);
+  const [isCoinCharging, setIsCoinCharging] = useState(false);
+  const coinChargeInterval = useRef<NodeJS.Timeout | null>(null);
 
   // 결과 패널 펼치기/접기
   const [isResultExpanded, setIsResultExpanded] = useState(false);
@@ -73,11 +79,47 @@ export function FlipperScreen() {
     setPower(0);
   }, [isChargingLocal, power, rollAllDice, isMuted, setIsCharging]);
 
+  // 코인 차징 시작
+  const startCoinCharging = useCallback(() => {
+    // 버튼이 이미 disabled={coin.isFlipping}으로 비활성화됨
+    setIsCoinCharging(true);
+    setCoinPower(0);
+    setCoinCharging(true, 0); // 스토어에 차징 상태 전달 (3D 코인 진동용)
+
+    coinChargeInterval.current = setInterval(() => {
+      setCoinPower((prev) => {
+        const newPower = prev >= 100 ? 100 : prev + 2;
+        setCoinCharging(true, newPower); // 파워도 함께 전달
+        return newPower;
+      });
+    }, 32);
+  }, [setCoinCharging]);
+
+  // 코인 차징 종료 및 던지기
+  const stopCoinChargingAndFlip = useCallback(() => {
+    if (!isCoinCharging) return;
+    setIsCoinCharging(false);
+    setCoinCharging(false, 0); // 차징 종료
+
+    if (coinChargeInterval.current) {
+      clearInterval(coinChargeInterval.current);
+      coinChargeInterval.current = null;
+    }
+
+    // 현재 파워로 던지기 (최소 10%)
+    const finalPower = Math.max(10, coinPower);
+    flipCoin(finalPower);
+    setCoinPower(0);
+  }, [isCoinCharging, coinPower, flipCoin, setCoinCharging]);
+
   // 컴포넌트 언마운트 시 인터벌 정리
   useEffect(() => {
     return () => {
       if (chargeInterval.current) {
         clearInterval(chargeInterval.current);
+      }
+      if (coinChargeInterval.current) {
+        clearInterval(coinChargeInterval.current);
       }
     };
   }, []);
@@ -276,23 +318,30 @@ export function FlipperScreen() {
 
           {/* 오른쪽: 코인 토스 + 전체 활성화/비활성화 */}
           <div className="flex flex-col items-end gap-2 pointer-events-auto">
-            {/* 코인 토스 버튼 + 결과 텍스트 */}
-            <div className="flex flex-col items-center gap-1">
-              <button
-                onClick={flipCoin}
-                disabled={coin.isFlipping}
-                className="px-4 py-2 bg-gradient-to-b from-yellow-400 to-yellow-600 text-yellow-900 font-bold text-sm border-2 border-yellow-700 rounded-lg shadow-lg hover:from-yellow-300 hover:to-yellow-500 transition-all disabled:opacity-50"
-                style={{
-                  boxShadow: '0 4px 8px rgba(0,0,0,0.3), inset 0 1px 2px rgba(255,255,255,0.3)',
-                }}
-              >
-                {coin.isFlipping ? '던지는 중...' : '코인 토스'}
-              </button>
-              {/* 코인 결과 텍스트 */}
-              <span className="text-xs font-bold text-gray-700 bg-white/80 px-2 py-0.5 rounded shadow-sm">
-                {coin.isFlipping ? '...' : coin.result === 'heads' ? '앞면' : coin.result === 'tails' ? '뒷면' : '-'}
+            {/* 코인 토스 버튼 (원형) */}
+            <button
+              onMouseDown={startCoinCharging}
+              onMouseUp={stopCoinChargingAndFlip}
+              onMouseLeave={stopCoinChargingAndFlip}
+              onTouchStart={startCoinCharging}
+              onTouchEnd={stopCoinChargingAndFlip}
+              disabled={coin.isFlipping}
+              className="relative w-16 h-16 sm:w-20 sm:h-20 rounded-full font-bold border-2 border-yellow-600 shadow-lg bg-yellow-400 text-black hover:bg-yellow-300 disabled:opacity-50 overflow-hidden select-none"
+              style={{ WebkitTouchCallout: 'none', WebkitUserSelect: 'none' }}
+            >
+              {/* 파워 게이지 (원형 채우기) */}
+              {isCoinCharging && (
+                <div
+                  className="absolute inset-0 bg-yellow-200 rounded-full"
+                  style={{
+                    clipPath: `inset(${100 - coinPower}% 0 0 0)`,
+                  }}
+                />
+              )}
+              <span className="relative z-10 text-xs sm:text-sm leading-tight">
+                {coin.isFlipping ? '...' : isCoinCharging ? `${coinPower}%` : (coin.result === 'heads' ? '앞면' : coin.result === 'tails' ? '뒷면' : '코인')}
               </span>
-            </div>
+            </button>
 
             {/* 전체 활성화/비활성화 */}
             <button
@@ -331,6 +380,7 @@ export function FlipperScreen() {
                 ? 'bg-gray-200 text-gray-400 border-gray-300 cursor-not-allowed'
                 : 'bg-black text-white border-black'
             }`}
+            style={{ WebkitTouchCallout: 'none', WebkitUserSelect: 'none' }}
           >
             {/* 파워 게이지 (가운데서 양쪽으로 채워짐) */}
             {isChargingLocal && (
