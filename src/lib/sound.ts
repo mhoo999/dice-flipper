@@ -31,7 +31,7 @@ export function playThrowSound(isMuted: boolean) {
   oscillator.frequency.setValueAtTime(400, ctx.currentTime);
   oscillator.frequency.exponentialRampToValueAtTime(150, ctx.currentTime + 0.15);
 
-  gainNode.gain.setValueAtTime(0.3, ctx.currentTime);
+  gainNode.gain.setValueAtTime(0.25, ctx.currentTime); // 전체 볼륨 조정
   gainNode.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.15);
 
   oscillator.start(ctx.currentTime);
@@ -55,7 +55,7 @@ export function playBounceSound(isMuted: boolean, intensity: number = 1) {
   oscillator.frequency.setValueAtTime(baseFreq * intensity, ctx.currentTime);
   oscillator.frequency.exponentialRampToValueAtTime(baseFreq * 0.5, ctx.currentTime + 0.08);
 
-  gainNode.gain.setValueAtTime(0.2 * intensity, ctx.currentTime);
+  gainNode.gain.setValueAtTime(0.15 * intensity, ctx.currentTime); // 전체 볼륨 조정
   gainNode.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.08);
 
   oscillator.start(ctx.currentTime);
@@ -81,7 +81,7 @@ export function playResultSound(isMuted: boolean) {
 
     const startTime = ctx.currentTime + i * 0.05;
     gainNode.gain.setValueAtTime(0, startTime);
-    gainNode.gain.linearRampToValueAtTime(0.2, startTime + 0.02);
+    gainNode.gain.linearRampToValueAtTime(0.18, startTime + 0.02); // 전체 볼륨 조정
     gainNode.gain.exponentialRampToValueAtTime(0.01, startTime + 0.3);
 
     oscillator.start(startTime);
@@ -120,7 +120,7 @@ export function playCoinSound(isMuted: boolean) {
   // 금속성 동전 소리 - 여러 하모닉스 조합
   const fundamentalFreq = 2500 + Math.random() * 300;
   const harmonics = [1, 2.4, 3.8, 5.2]; // 비정수 배음으로 금속 느낌
-  const harmonicGains = [0.3, 0.15, 0.08, 0.04];
+  const harmonicGains = [0.15, 0.08, 0.04, 0.02]; // 전체 볼륨 조정 (기존의 약 50%)
 
   harmonics.forEach((harmonic, i) => {
     const oscillator = ctx.createOscillator();
@@ -168,7 +168,7 @@ export function playCoinSound(isMuted: boolean) {
   noiseFilter.frequency.setValueAtTime(3000, now);
   noiseFilter.Q.setValueAtTime(2, now);
 
-  noiseGain.gain.setValueAtTime(0.15, now);
+  noiseGain.gain.setValueAtTime(0.08, now); // 전체 볼륨 조정 (기존의 약 50%)
   noiseGain.gain.exponentialRampToValueAtTime(0.001, now + 0.03);
 
   noiseSource.start(now);

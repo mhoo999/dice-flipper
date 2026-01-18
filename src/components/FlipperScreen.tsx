@@ -170,6 +170,11 @@ export function FlipperScreen() {
   const currentGridColumns = getGridColumns();
   // 한 줄에 모든 항목이 표시되면 펼침 버튼 숨김
   const shouldShowExpandButton = totalItems > currentGridColumns;
+  
+  // 데스크톱 세로형: 펼침 상태에서 필요한 컬럼 수 계산
+  // 한 컬럼에 들어갈 수 있는 항목 수 (대략 8개, 항목 높이 약 71px)
+  const itemsPerColumn = 8;
+  const desktopExpandedColumns = Math.ceil(totalItems / itemsPerColumn);
 
   return (
     <div
@@ -225,13 +230,14 @@ export function FlipperScreen() {
         {/* 3D 씬 */}
         <DiceScene />
 
-        {/* 결과 표시 패널 */}
-        <div className="absolute top-2 sm:top-4 lg:top-6 left-2 right-2 sm:left-4 sm:right-4 lg:left-6 lg:right-6">
-          <div className="relative flex items-center justify-center max-w-4xl mx-auto">
+        {/* 결과 표시 패널 - 모바일: 상단 가로형, 데스크톱: 좌측 세로형 */}
+        <div className="absolute top-2 sm:top-4 lg:top-6 left-2 right-2 sm:left-4 sm:right-4 lg:left-6 lg:right-auto lg:w-auto lg:max-w-none">
+          {/* 모바일: 상단 가로형 배치 */}
+          <div className="lg:hidden relative flex items-center justify-center max-w-4xl mx-auto">
             <div className="relative bg-white border border-black shadow-lg w-full">
             {/* 주사위 그리드 */}
-            <div className={`overflow-hidden transition-all ${isResultExpanded ? 'max-h-[400px]' : 'max-h-[88px] lg:max-h-[92px]'}`}>
-              <div className="grid grid-cols-5 sm:grid-cols-6 md:grid-cols-8 lg:grid-cols-12 xl:grid-cols-[repeat(16,minmax(0,1fr))] gap-2 lg:gap-3 p-3 lg:p-4 xl:p-5">
+            <div className={`overflow-hidden transition-all ${isResultExpanded ? 'max-h-[400px]' : 'max-h-[88px]'}`}>
+              <div className="grid grid-cols-5 sm:grid-cols-6 md:grid-cols-8 gap-2 p-3">
                 {/* 합계 박스 - 첫 번째 위치 */}
                 <div className="flex flex-col items-center">
                   <div className="w-11 h-11 flex items-center justify-center text-base font-bold bg-black text-white">
@@ -292,13 +298,12 @@ export function FlipperScreen() {
 
               </div>
             </div>
-
           </div>
           </div>
 
-          {/* 펼침 토글 - 컨테이너 아래 우측 */}
+          {/* 모바일: 펼침 토글 - 컨테이너 아래 우측 */}
           {shouldShowExpandButton && (
-            <div className="relative flex items-center justify-center max-w-4xl mx-auto">
+            <div className="lg:hidden relative flex items-center justify-center max-w-4xl mx-auto">
               <div className="flex justify-end mr-2 -mt-[1px]">
                 <button
                   onClick={() => setIsResultExpanded(!isResultExpanded)}
@@ -323,6 +328,102 @@ export function FlipperScreen() {
               </div>
             </div>
           )}
+
+          {/* 데스크톱: 좌측 세로형 배치 */}
+          <div className="hidden lg:block">
+            <div className={`relative bg-white border border-black shadow-lg transition-all ${isResultExpanded ? 'w-[200px]' : 'w-[80px]'} h-[calc(100vh-280px)] flex flex-col`}>
+              {/* 주사위 그리드 - 세로형 */}
+              <div className={`overflow-hidden transition-all ${isResultExpanded ? 'flex-1' : 'h-auto max-h-[calc(100vh-400px)]'}`}>
+                <div 
+                  className="grid gap-3 p-4"
+                  style={{ gridTemplateColumns: `repeat(${isResultExpanded ? desktopExpandedColumns : 1}, minmax(0, 1fr))` }}
+                >
+                  {/* 합계 박스 - 첫 번째 위치 */}
+                  <div className="flex flex-col items-center gap-1 cursor-pointer">
+                    <div className="w-11 h-11 flex items-center justify-center text-base font-bold bg-black text-white">
+                      {isRolling ? '?' : (numericDice.length > 0 ? totalResult : '-')}
+                    </div>
+                    <span className="text-[10px] text-gray-600">합계</span>
+                  </div>
+
+                  {/* 주사위들 */}
+                  {diceInPlay.map((dice) => {
+                    const resultImage = dice.result && dice.customization.faceImages?.[dice.result];
+                    const resultText = dice.result && dice.customization.faceTexts?.[dice.result];
+                    const isDisabled = !dice.enabled || dice.locked;
+
+                    const handleDiceClick = () => {
+                      playClickSound(isMuted);
+                      if (dice.result !== null) {
+                        toggleDiceLocked(dice.id);
+                      } else {
+                        toggleDiceEnabled(dice.id);
+                      }
+                    };
+
+                    return (
+                      <div
+                        key={dice.id}
+                        className="flex flex-col items-center gap-1 cursor-pointer"
+                        onClick={handleDiceClick}
+                      >
+                        <div
+                          className={`w-11 h-11 flex items-center justify-center text-sm font-bold border border-black overflow-hidden transition-opacity ${
+                            isDisabled ? 'opacity-30 bg-gray-100' : 'bg-gray-50'
+                          }`}
+                          style={
+                            !dice.isRolling && resultImage
+                              ? {
+                                  backgroundImage: `url(${resultImage})`,
+                                  backgroundSize: 'cover',
+                                  backgroundPosition: 'center',
+                                }
+                              : {}
+                          }
+                        >
+                          {dice.isRolling ? (
+                            <span className="animate-spin">?</span>
+                          ) : resultImage ? null : (
+                            <span className={resultText && resultText.length > 2 ? 'text-[10px]' : ''}>
+                              {resultText || dice.result || '-'}
+                            </span>
+                          )}
+                        </div>
+                        <span className={`text-[10px] ${isDisabled ? 'text-gray-400' : 'text-gray-500'}`}>
+                          {dice.customization.type}
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* 데스크톱: 펼침 토글 - 오른쪽 */}
+              {(shouldShowExpandButton || diceInPlay.length > 0) && (
+                <div className="absolute top-1/2 -translate-y-1/2 -right-1 translate-x-full z-10 pointer-events-auto">
+                  <button
+                    onClick={() => setIsResultExpanded(!isResultExpanded)}
+                    className="px-2 py-3 bg-white border-t border-r border-b border-black hover:bg-gray-50 transition-colors text-xs flex flex-col items-center gap-1 shadow-md"
+                  >
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      width="12"
+                      height="12"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      className={`transition-transform ${isResultExpanded ? 'rotate-180' : ''}`}
+                    >
+                      <polyline points="9 18 15 12 9 6" />
+                    </svg>
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
         </div>
 
         {/* 안내 텍스트 */}
