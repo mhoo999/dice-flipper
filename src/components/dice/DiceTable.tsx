@@ -8,7 +8,7 @@ interface DiceTableProps {
 }
 
 export function DiceTable({
-  size = 8,
+  size = 10, // 테이블 크기 증가 (8 -> 10) - 주사위가 많을 때 맵 밖으로 나가는 것 방지
   height = 0.2,
 }: DiceTableProps) {
   const wallHeight = 12;
@@ -28,7 +28,7 @@ export function DiceTable({
       </RigidBody>
 
       {/* 투명 벽 - 전면 */}
-      <RigidBody type="fixed" friction={0.2} restitution={0.8}>
+      <RigidBody type="fixed" friction={0.2} restitution={0.5}>
         <CuboidCollider
           args={[size / 2, wallHeight / 2, wallThickness / 2]}
           position={[0, wallHeight / 2, size / 2 + wallThickness / 2]}
@@ -36,7 +36,7 @@ export function DiceTable({
       </RigidBody>
 
       {/* 투명 벽 - 후면 */}
-      <RigidBody type="fixed" friction={0.2} restitution={0.8}>
+      <RigidBody type="fixed" friction={0.2} restitution={0.5}>
         <CuboidCollider
           args={[size / 2, wallHeight / 2, wallThickness / 2]}
           position={[0, wallHeight / 2, -size / 2 - wallThickness / 2]}
@@ -44,7 +44,7 @@ export function DiceTable({
       </RigidBody>
 
       {/* 투명 벽 - 좌측 */}
-      <RigidBody type="fixed" friction={0.2} restitution={0.8}>
+      <RigidBody type="fixed" friction={0.2} restitution={0.5}>
         <CuboidCollider
           args={[wallThickness / 2, wallHeight / 2, size / 2 + wallThickness]}
           position={[-size / 2 - wallThickness / 2, wallHeight / 2, 0]}
@@ -52,7 +52,7 @@ export function DiceTable({
       </RigidBody>
 
       {/* 투명 벽 - 우측 */}
-      <RigidBody type="fixed" friction={0.2} restitution={0.8}>
+      <RigidBody type="fixed" friction={0.2} restitution={0.5}>
         <CuboidCollider
           args={[wallThickness / 2, wallHeight / 2, size / 2 + wallThickness]}
           position={[size / 2 + wallThickness / 2, wallHeight / 2, 0]}

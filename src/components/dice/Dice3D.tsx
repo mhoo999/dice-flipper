@@ -18,6 +18,12 @@ export function Dice3D({ dice }: Dice3DProps) {
   const rigidBodyRef = useRef<RapierRigidBody>(null);
   const meshRef = useRef<THREE.Mesh>(null);
   const [isStable, setIsStable] = useState(false);
+  const diceInPlay = useDiceStore((state) => state.diceInPlay);
+  
+  // 주사위 개수에 따라 테이블 크기 동적 계산 (DiceScene과 동일한 로직)
+  const diceCount = diceInPlay.filter(d => d.enabled && !d.locked).length;
+  const tableSize = Math.min(16, Math.max(10, 10 + Math.ceil((diceCount - 10) * 0.3)));
+  const tableHalfSize = tableSize / 2;
   const stableFrames = useRef(0);
 
   const setDiceResult = useDiceStore((state) => state.setDiceResult);
@@ -142,6 +148,16 @@ export function Dice3D({ dice }: Dice3DProps) {
         lastShakeSound.current = now;
       }
 
+      return;
+    }
+
+    // 맵 밖으로 나간 주사위 감지 및 리셋 (동적 테이블 크기)
+    const translation = rb.translation();
+    if (Math.abs(translation.x) > tableHalfSize || Math.abs(translation.z) > tableHalfSize || translation.y < -2 || translation.y > 15) {
+      // 맵 밖으로 나갔으면 중앙으로 리셋
+      rb.setTranslation({ x: 0, y: 1, z: 0 }, true);
+      rb.setLinvel({ x: 0, y: 0, z: 0 }, true);
+      rb.setAngvel({ x: 0, y: 0, z: 0 }, true);
       return;
     }
 

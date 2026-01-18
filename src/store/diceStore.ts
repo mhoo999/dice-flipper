@@ -327,19 +327,22 @@ export const useDiceStore = create<DiceStore>()(
             }
             
             // 플레이어(카메라) 쪽에서 시작 - 약간씩 다른 위치
-            const spreadX = (enabledIndex - (state.diceInPlay.filter(dd => dd.enabled && !dd.locked).length - 1) / 2) * 0.5;
-            const randomX = (Math.random() - 0.5) * 0.3;
-            const randomZ = Math.random() * 0.3;
+            const enabledCount = state.diceInPlay.filter(dd => dd.enabled && !dd.locked).length;
+            // 주사위 개수에 따라 spreadX 범위 조정 (맵 밖으로 나가지 않도록)
+            const maxSpread = Math.min(3.5, enabledCount * 0.3);
+            const spreadX = (enabledIndex - (enabledCount - 1) / 2) * (maxSpread / Math.max(1, enabledCount - 1));
+            const randomX = (Math.random() - 0.5) * 0.2;
+            const randomZ = Math.random() * 0.2;
             enabledIndex++;
             return {
               ...d,
               isRolling: true,
               result: null,
-              // 앞쪽(z=3)에서 시작, 중앙을 향해 던져질 예정 (코인바닥 2 아래로 제한)
+              // 앞쪽(z=2.5)에서 시작, 중앙을 향해 던져질 예정 (테이블 크기 증가에 맞춰 조정)
               position: [
-                spreadX + randomX,
+                Math.max(-4, Math.min(4, spreadX + randomX)), // 테이블 경계 내로 제한
                 0.8 + Math.random() * 0.4,
-                3 + randomZ,
+                2.5 + randomZ, // z 위치를 더 중앙으로 이동
               ] as [number, number, number],
               rotation: [
                 Math.random() * Math.PI * 2,

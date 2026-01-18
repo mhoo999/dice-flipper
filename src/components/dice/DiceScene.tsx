@@ -11,6 +11,11 @@ import { useDiceStore } from '@/store/diceStore';
 
 function Scene() {
   const diceInPlay = useDiceStore((state) => state.diceInPlay);
+  
+  // 주사위 개수에 따라 테이블 크기 동적 조정
+  // 기본 10, 주사위가 많을수록 크기 증가 (최대 16)
+  const diceCount = diceInPlay.filter(d => d.enabled && !d.locked).length;
+  const tableSize = Math.min(16, Math.max(10, 10 + Math.ceil((diceCount - 10) * 0.3)));
 
   return (
     <>
@@ -35,7 +40,7 @@ function Scene() {
       {/* 물리 시뮬레이션 */}
       <Physics gravity={[0, -20, 0]} timeStep="vary">
         {/* 테이블 */}
-        <DiceTable />
+        <DiceTable size={tableSize} />
 
         {/* 주사위들 (활성화되고 잠기지 않은 주사위만 렌더링) */}
         {diceInPlay.filter((dice) => dice.enabled && !dice.locked).map((dice) => (
