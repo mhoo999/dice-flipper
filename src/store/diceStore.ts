@@ -431,6 +431,8 @@ export const useDiceStore = create<DiceStore>()(
             diceInPlay: state.diceInPlay.map((d) => ({
               ...d,
               enabled: newEnabledState,
+              // 활성화할 때는 잠금도 해제 (주사위가 나타나도록)
+              locked: newEnabledState ? false : d.locked,
             })),
           };
         });

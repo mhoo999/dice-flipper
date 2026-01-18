@@ -251,9 +251,10 @@ export function FlipperScreen() {
                     : dice.customization.faceTexts?.[1];
                   const isDisabled = !dice.enabled || dice.locked;
 
-                  const handleDiceClick = () => {
+                  const handleDiceClick = (e: React.MouseEvent) => {
                     playClickSound(isMuted);
-                    if (dice.result !== null) {
+                    // Shift 키를 누르면 잠금 토글, 아니면 활성화/비활성화 토글
+                    if (e.shiftKey && dice.result !== null) {
                       toggleDiceLocked(dice.id);
                     } else {
                       toggleDiceEnabled(dice.id);
@@ -265,6 +266,7 @@ export function FlipperScreen() {
                       key={dice.id}
                       className="flex flex-col items-center cursor-pointer"
                       onClick={handleDiceClick}
+                      title={dice.result !== null ? '클릭: 활성화/비활성화, Shift+클릭: 잠금/해제' : '클릭: 활성화/비활성화'}
                     >
                       <div
                         className={`w-11 h-11 flex items-center justify-center text-sm font-bold border border-black overflow-hidden transition-opacity ${
