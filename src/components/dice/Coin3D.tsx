@@ -39,8 +39,8 @@ export function Coin3D() {
 
   // 코인 가시성 제어
   useEffect(() => {
-    // 플립 시작 시 페이드 인
-    if (isFlipping) {
+    // 차징 중이거나 플립 시작 시 페이드 인
+    if (isCharging || isFlipping) {
       setOpacity(1);
       // 이전 페이드 아웃 타이머 취소
       if (fadeOutTimeoutRef.current) {
@@ -48,7 +48,7 @@ export function Coin3D() {
         fadeOutTimeoutRef.current = null;
       }
     }
-  }, [isFlipping]);
+  }, [isCharging, isFlipping]);
 
   // 결과 후 페이드 아웃
   useEffect(() => {
@@ -249,7 +249,7 @@ export function Coin3D() {
       <CylinderCollider args={[coinThickness / 2, coinRadius]} />
       <group ref={groupRef}>
         {/* 코인 본체 - 옆면 */}
-        <mesh castShadow receiveShadow>
+        <mesh>
           <cylinderGeometry args={[coinRadius, coinRadius, coinThickness, 32]} />
           <meshStandardMaterial
             color="#d4af37"
