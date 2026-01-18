@@ -22,6 +22,10 @@ export function Coin3D() {
   const wobbleTime = useRef(0);
   const lastSpinSoundTime = useRef(0);
 
+  // 코인 가시성 상태
+  const [opacity, setOpacity] = useState(0);
+  const fadeOutTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
   // 차징 중일 때 제자리에서 진동
   useEffect(() => {
     if (isCharging && rigidBodyRef.current) {
@@ -32,6 +36,49 @@ export function Coin3D() {
       wobbleTime.current = 0;
     }
   }, [isCharging]);
+
+  // 코인 가시성 제어
+  useEffect(() => {
+    // 플립 시작 시 페이드 인
+    if (isFlipping) {
+      setOpacity(1);
+      // 이전 페이드 아웃 타이머 취소
+      if (fadeOutTimeoutRef.current) {
+        clearTimeout(fadeOutTimeoutRef.current);
+        fadeOutTimeoutRef.current = null;
+      }
+    }
+  }, [isFlipping]);
+
+  // 결과 후 페이드 아웃
+  useEffect(() => {
+    if (isStable) {
+      // 1초 후 페이드 아웃 시작
+      fadeOutTimeoutRef.current = setTimeout(() => {
+        const fadeOutDuration = 500; // 0.5초 동안 페이드 아웃
+        const fadeSteps = 20;
+        const stepDuration = fadeOutDuration / fadeSteps;
+        let currentStep = 0;
+
+        const fadeInterval = setInterval(() => {
+          currentStep++;
+          const newOpacity = 1 - (currentStep / fadeSteps);
+          setOpacity(newOpacity);
+
+          if (currentStep >= fadeSteps) {
+            clearInterval(fadeInterval);
+            setOpacity(0);
+          }
+        }, stepDuration);
+      }, 1000);
+    }
+
+    return () => {
+      if (fadeOutTimeoutRef.current) {
+        clearTimeout(fadeOutTimeoutRef.current);
+      }
+    };
+  }, [isStable]);
 
   // 코인 플립 시작
   useEffect(() => {
@@ -208,6 +255,8 @@ export function Coin3D() {
             color="#d4af37"
             metalness={0.8}
             roughness={0.2}
+            transparent={true}
+            opacity={opacity}
           />
         </mesh>
         {/* 앞면 (위) */}
@@ -217,6 +266,8 @@ export function Coin3D() {
             color="#c5a028"
             metalness={0.9}
             roughness={0.3}
+            transparent={true}
+            opacity={opacity}
           />
         </mesh>
         {/* 뒷면 (아래) */}
@@ -226,6 +277,8 @@ export function Coin3D() {
             color="#b8962a"
             metalness={0.9}
             roughness={0.3}
+            transparent={true}
+            opacity={opacity}
           />
         </mesh>
       </group>
