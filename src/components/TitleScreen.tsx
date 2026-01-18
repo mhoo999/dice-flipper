@@ -908,35 +908,8 @@ export function TitleScreen() {
         </div>
       </main>
 
-      {/* 푸터 */}
-      <footer
-        className="border-t border-gray-300 px-6 py-8"
-        style={{ paddingBottom: 'calc(2rem + env(safe-area-inset-bottom, 0px))' }}
-      >
-        <div className="max-w-6xl mx-auto flex flex-col items-center gap-4">
-          <div className="flex gap-4">
-            <a
-              href="https://hoons-service-archive.vercel.app/"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="px-6 py-3 bg-white text-black font-medium border border-black hover:bg-gray-100 transition-colors"
-            >
-              다른 서비스 보러가기
-            </a>
-            <a
-              href="https://hoons-service-archive.vercel.app/#coffee"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="px-6 py-3 bg-white text-black font-medium border border-black hover:bg-gray-100 transition-colors"
-            >
-              개발자 커피 한잔 사주기
-            </a>
-          </div>
-          <p className="text-sm text-gray-500">
-            Made with Next.js & Three.js
-          </p>
-        </div>
-      </footer>
+      {/* 동적 푸터 */}
+      <div id="hoons-footer"></div>
     </div>
   );
 }

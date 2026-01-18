@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from "next";
+import Script from "next/script";
 import "./globals.css";
 
 export const viewport: Viewport = {
@@ -21,8 +22,12 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="ko">
+      <head>
+        <link rel="stylesheet" href="https://hoons-service-footer.vercel.app/footer.css" />
+      </head>
       <body className="antialiased">
         {children}
+        <Script src="https://hoons-service-footer.vercel.app/footer.js" strategy="afterInteractive" />
       </body>
     </html>
   );
