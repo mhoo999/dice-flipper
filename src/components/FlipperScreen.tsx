@@ -45,6 +45,16 @@ export function FlipperScreen() {
 
   // 결과 패널 펼치기/접기
   const [isResultExpanded, setIsResultExpanded] = useState(false);
+  
+  // 화면 크기 감지
+  const [windowWidth, setWindowWidth] = useState(0);
+  
+  useEffect(() => {
+    const updateWidth = () => setWindowWidth(window.innerWidth);
+    updateWidth();
+    window.addEventListener('resize', updateWidth);
+    return () => window.removeEventListener('resize', updateWidth);
+  }, []);
 
   // 차징 시작
   const startCharging = useCallback(() => {
@@ -145,6 +155,21 @@ export function FlipperScreen() {
   
   // 활성화된 주사위가 있는지 확인
   const hasEnabledDice = diceInPlay.some((d) => d.enabled && !d.locked);
+  
+  // 화면 크기에 따른 그리드 컬럼 수 계산
+  const getGridColumns = () => {
+    if (windowWidth >= 1280) return 16; // xl
+    if (windowWidth >= 1024) return 12; // lg
+    if (windowWidth >= 768) return 8;   // md
+    if (windowWidth >= 640) return 6;   // sm
+    return 5; // 기본
+  };
+  
+  // 총 표시 항목 수 (합계 박스 1개 + 주사위 개수)
+  const totalItems = 1 + diceInPlay.length;
+  const currentGridColumns = getGridColumns();
+  // 한 줄에 모든 항목이 표시되면 펼침 버튼 숨김
+  const shouldShowExpandButton = totalItems > currentGridColumns;
 
   return (
     <div
@@ -201,11 +226,12 @@ export function FlipperScreen() {
         <DiceScene />
 
         {/* 결과 표시 패널 */}
-        <div className="absolute top-2 sm:top-4 left-2 right-2 sm:left-4 sm:right-4">
-          <div className="relative bg-white border border-black shadow-lg w-full">
+        <div className="absolute top-2 sm:top-4 lg:top-6 left-2 right-2 sm:left-4 sm:right-4 lg:left-6 lg:right-6">
+          <div className="relative flex items-center justify-center max-w-4xl mx-auto">
+            <div className="relative bg-white border border-black shadow-lg w-full">
             {/* 주사위 그리드 */}
-            <div className={`overflow-hidden transition-all ${isResultExpanded ? 'max-h-[400px]' : 'max-h-[72px]'}`}>
-              <div className="grid grid-cols-5 sm:grid-cols-6 md:grid-cols-8 gap-2 p-3">
+            <div className={`overflow-hidden transition-all ${isResultExpanded ? 'max-h-[400px]' : 'max-h-[88px] lg:max-h-[92px]'}`}>
+              <div className="grid grid-cols-5 sm:grid-cols-6 md:grid-cols-8 lg:grid-cols-12 xl:grid-cols-[repeat(16,minmax(0,1fr))] gap-2 lg:gap-3 p-3 lg:p-4 xl:p-5">
                 {/* 합계 박스 - 첫 번째 위치 */}
                 <div className="flex flex-col items-center">
                   <div className="w-11 h-11 flex items-center justify-center text-base font-bold bg-black text-white">
@@ -268,30 +294,33 @@ export function FlipperScreen() {
             </div>
 
           </div>
+          </div>
 
           {/* 펼침 토글 - 컨테이너 아래 우측 */}
-          {diceInPlay.length > 4 && (
-            <div className="flex justify-end mr-2 -mt-[1px]">
-              <button
-                onClick={() => setIsResultExpanded(!isResultExpanded)}
-                className="px-3 py-1 bg-white border border-t-0 border-black hover:bg-gray-50 transition-colors text-xs flex items-center gap-1 relative z-10"
-              >
-                <span>{isResultExpanded ? '접기' : '펼침'}</span>
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  width="12"
-                  height="12"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  className={`transition-transform ${isResultExpanded ? 'rotate-180' : ''}`}
+          {shouldShowExpandButton && (
+            <div className="relative flex items-center justify-center max-w-4xl mx-auto">
+              <div className="flex justify-end mr-2 -mt-[1px]">
+                <button
+                  onClick={() => setIsResultExpanded(!isResultExpanded)}
+                  className="px-3 py-1 bg-white border border-t-0 border-black hover:bg-gray-50 transition-colors text-xs flex items-center gap-1 relative z-10"
                 >
-                  <polyline points="6 9 12 15 18 9" />
-                </svg>
-              </button>
+                  <span>{isResultExpanded ? '접기' : '펼침'}</span>
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="12"
+                    height="12"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    className={`transition-transform ${isResultExpanded ? 'rotate-180' : ''}`}
+                  >
+                    <polyline points="6 9 12 15 18 9" />
+                  </svg>
+                </button>
+              </div>
             </div>
           )}
         </div>
@@ -305,7 +334,9 @@ export function FlipperScreen() {
         )}
 
         {/* 하단 FAB 영역 */}
-        <div className="absolute bottom-3 left-3 right-3 sm:bottom-4 sm:left-4 sm:right-4 flex justify-between items-end pointer-events-none">
+        <div className="absolute bottom-3 left-3 right-3 sm:bottom-4 sm:left-4 sm:right-4 pointer-events-none">
+          <div className="relative flex items-center justify-center max-w-4xl mx-auto">
+            <div className="w-full flex justify-between items-end pointer-events-none">
           {/* 왼쪽: 개발자 커피 */}
           <a
             href="https://hoons-service-archive.vercel.app/#coffee"
@@ -357,6 +388,8 @@ export function FlipperScreen() {
             >
               {diceInPlay.every((d) => d.enabled) ? '전체 비활성화' : '전체 활성화'}
             </button>
+          </div>
+            </div>
           </div>
         </div>
       </main>
